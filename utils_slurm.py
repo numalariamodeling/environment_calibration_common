@@ -199,4 +199,4 @@ def submit_scheduled_analyzer(experiment, platform, site, analyzer_script, mem=2
     print(f"Analyzer job id: {job_id_analyzer}")
     
     #return (job_id_analyzer)  # if needed to add another dependency slurm submission
-    return () 
+    return ()

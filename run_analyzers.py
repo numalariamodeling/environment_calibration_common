@@ -5,10 +5,20 @@ import os
 import argparse
 from idmtools.core.platform_factory import Platform
 # from within environment_calibration_common submodule
+sys.path.append("/home/upf3610/b1139/ipti_pmc/environment_calibration/environment_calibration_common")
 from helpers import get_comps_id_filename, load_coordinator_df
+
+# from .helpers import get_comps_id_filename, load_coordinator_df
+# from helpers import get_comps_id_filename, load_coordinator_df
+
+sys.path.append("/home/upf3610/b1139/ipti_pmc/environment_calibration/environment_calibration_common")
 from analyzers.analyze import analyze_experiment
+
+# from analyzers.analyze import analyze_experiment
 # from source 'simulations' directory
-sys.path.append("../simulations")
+
+# sys.path.append("../simulations")
+sys.path.append("/home/upf3610/b1139/ipti_pmc/environment_calibration/simulations")
 import manifest as manifest
 
 def run_analyzers(site: str, expid: str = None, characteristic: bool = False) -> (bool, str):
@@ -44,6 +54,7 @@ def run_analyzers(site: str, expid: str = None, characteristic: bool = False) ->
             os.makedirs(wdir)
 
         analyzers_id_file = get_comps_id_filename(site=site, level=2)
+        print(analyzers_id_file)
         
 
         analyze_experiment(platform, exp_id, wdir)
@@ -75,3 +86,4 @@ if __name__ == "__main__":
     sites=[my_site]
     for site in sites:
         run_analyzers(site,args.expid)
+

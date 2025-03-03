@@ -15,13 +15,20 @@ warnings.simplefilter(action='ignore', category=FutureWarning)
 warnings.simplefilter(action='ignore', category=SettingWithCopyWarning)
 pd.options.mode.chained_assignment = None  # default='warn'
 # from within environment_calibration_common submodule
-sys.path.append("../")
-from load_inputs import load_sites
-from helpers import load_coordinator_df
+# sys.path.append("../")
+# from load_inputs import load_sites
+# from helpers import load_coordinator_df
 # from source 'simulations' directory
 sys.path.append("../../simulations")
+
 import manifest
 
+def load_coordinator_df(characteristic=False, set_index=True):
+    csv_file = manifest.sweep_sim_coordinator_path if characteristic else manifest.simulation_coordinator_path
+    coord_df = pd.read_csv(csv_file)
+    if set_index:
+        coord_df = coord_df.set_index('option')
+    return coord_df
 
 coord_df = load_coordinator_df(characteristic=False, set_index=True)
 
@@ -39,6 +46,13 @@ def load_prevalence_data(site):
     ### Load reference PCR prevalence data
     refprev = pd.read_csv(os.path.join(manifest.base_reference_filepath,
                                       coord_df.at['prevalence_comparison_reference','value']))
+    refprev = refprev[refprev['site']==site]
+    return(refprev)
+
+def load_prevalence_data_U2(site):
+    ### Load reference PCR prevalence data
+    refprev = pd.read_csv(os.path.join(manifest.base_reference_filepath,
+                                      coord_df.at['prevalence_comparison_reference_U2','value']))
     refprev = refprev[refprev['site']==site]
     return(refprev)
 
@@ -82,11 +96,16 @@ def compare_PfPR_prevalence(site,agebin):
     #### SCORE - Monthly PCR Parasite Prevalence ####
     #################################################
     # load reference data
-    refpfpr = load_prevalence_data(site)
+    if agebin <= 2:
+        refpfpr = load_prevalence_data_U2(site)
+        fname = "PfPR_monthly_U2.csv"
+    else:
+        refpfpr = load_prevalence_data(site)
+        fname = "PfPR_monthly_U5.csv"
     refpfpr = refpfpr[refpfpr['age'] == agebin]
     # convert reference_pcr 'year' to start at 0, like simulations
     refpfpr['year'] = [(y) for y in refpfpr['year']]
-    sim_pfpr = pd.read_csv(os.path.join(manifest.simulation_output_filepath,site,"PfPR_monthly.csv"))
+    sim_pfpr = pd.read_csv(os.path.join(manifest.simulation_output_filepath,site,fname))
     # filter to age of interest
     sim_pfpr = sim_pfpr[sim_pfpr['agebin']==agebin]
     # get mean PfPR by month, year, and Sample_ID across runs
@@ -203,7 +222,7 @@ def compare_annual_incidence(site,agebin):
     score2['intensity_score'] = score2.apply(lambda row: exp(abs(row['Inc']-target)/target), axis=1)
     return score2
 
-def compute_all_scores(site,incidence_agebin=100,prevalence_agebin=100):
+def compute_all_scores(site,incidence_agebin=100,prevalence_agebin=5, prevalence_agebin_U2=2):
     # merge unweighted scores into one dataframe, and return
     
     scores = check_EIR_threshold(site)
@@ -211,23 +230,24 @@ def compute_all_scores(site,incidence_agebin=100,prevalence_agebin=100):
     if(coord_df.at['incidence_comparison','value']):
         score1 = compare_incidence_shape(site,agebin=incidence_agebin)
         scores = scores.merge(score1[['Sample_ID','shape_score']], how='outer', on='Sample_ID')
-        score2 = compare_annual_incidence(site,agebin=incidence_agebin)
-        scores = scores.merge(score2[['Sample_ID','intensity_score']], how='outer', on='Sample_ID')
+        # score2 = compare_annual_incidence(site,agebin=incidence_agebin)
+        # scores = scores.merge(score2[['Sample_ID','intensity_score']], how='outer', on='Sample_ID')
     if(coord_df.at['prevalence_comparison','value']):
         if(coord_df.at['prevalence_comparison_diagnostic','value']=="PCR"):
             score3 = compare_all_age_PCR_prevalence(site)
             scores = scores.merge(score3[['Sample_ID','prevalence_score']], how='outer', on='Sample_ID')
         if(coord_df.at['prevalence_comparison_diagnostic','value']=="Microscopy"):
             score3 = compare_PfPR_prevalence(site,agebin=prevalence_agebin)
+            score4 = compare_PfPR_prevalence(site,agebin=prevalence_agebin_U2)
             scores = scores.merge(score3[['Sample_ID','prevalence_score']], how='outer', on='Sample_ID')
+            scores = scores.merge(score4[['Sample_ID','prevalence_U2_score']], how='outer', on='Sample_ID')
     return scores
   
   
 
 if __name__ == '__main__':
-  site="Nanoro"
+  site="Aiyedade"
   print(compare_incidence_shape(site,agebin=100))
-  print(compare_annual_incidence(site,agebin=100))
+#   print(compare_annual_incidence(site,agebin=100))
   print(compare_all_age_PCR_prevalence(site))
   print(check_EIR_threshold(site))
-
