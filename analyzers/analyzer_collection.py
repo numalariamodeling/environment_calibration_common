@@ -91,12 +91,13 @@ class MonthlyPfPRAnalyzer(IAnalyzer):
         working_dir="./",
         start_year=2000,
         end_year=2001,
+        grp = 'U5',
         filter_exists=False,
     ):
         super(MonthlyPfPRAnalyzer, self).__init__(
             working_dir=working_dir,
             filenames=[
-                f"output/MalariaSummaryReport_Monthly_prevalence_{x}.json"
+                f"output/MalariaSummaryReport_Monthly_prevalence_{grp}_{x}.json"
                 for x in range(start_year, end_year)
             ],
         )
@@ -104,6 +105,7 @@ class MonthlyPfPRAnalyzer(IAnalyzer):
         self.start_year = start_year
         self.end_year = end_year
         self.filter_exists = filter_exists
+        self.grp = grp
 
     def filter(self, simulation: Simulation):
         if self.filter_exists:
@@ -151,7 +153,7 @@ class MonthlyPfPRAnalyzer(IAnalyzer):
 
         adf = pd.concat(selected).reset_index(drop=True)
         adf.to_csv(
-            (os.path.join(self.working_dir, "PfPR_monthly.csv")),
+            (os.path.join(self.working_dir, f"PfPR_monthly_{self.grp}.csv")),
             index=False,
         )
 
