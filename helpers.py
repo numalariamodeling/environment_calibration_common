@@ -120,7 +120,7 @@ def add_outputs(task, site):
         incidence_df = pd.read_csv(os.path.join(manifest.base_reference_filepath,coord_df.at['incidence_comparison_reference','value']))
         incidence_agebins = sorted([float(a) for a in incidence_df['age'].unique()])
         first_year = int(incidence_df['year'].min()) - sim_start_year
-        last_year = int(incidence_df['year'].max()) - sim_start_year + 1
+        last_year = int(incidence_df['year'].max()) - sim_start_year + 2
         
         # Logical bounds on years to request
         if first_year < 0:
@@ -146,41 +146,96 @@ def add_outputs(task, site):
                                        pretty_format=True,
                                        filename_suffix=f"Yearly_incidence_{first_year+sim_start_year}_to_{last_year+sim_start_year}")
     ### Prevalence-related reports ### 
+    # if(coord_df.at['prevalence_comparison','value']):
+    #     if(coord_df.at['prevalence_comparison_diagnostic','value']!="PCR"):
+    #         prevalence_df = pd.read_csv(os.path.join(manifest.base_reference_filepath,
+    #                                                 coord_df.at['prevalence_comparison_reference','value']))
+    #         prevalence_agebins =  sorted([float(a) for a in prevalence_df['age'].unique()])
+    #         first_year = int(prevalence_df['year'].min()) - sim_start_year
+    #         last_year = int(prevalence_df['year'].max()) - sim_start_year
+            
+    #         # Logical bounds on years to request
+    #         if first_year < 0:
+    #             first_year=0
+    #         if last_year > simulation_years:
+    #             last_year=simulation_years
+    #         print(first_year)
+    #         print(last_year)
+    #         print(simulation_years)    
+    #         if(coord_df.at['prevalence_comparison_frequency','value']=='monthly'):
+    #             for year in range(first_year, last_year):
+    #                 start_day = 0 + 365 * year
+    #                 sim_year = sim_start_year + year
+    #                 add_malaria_summary_report(task,manifest,
+    #                                         start_day=start_day,end_day=365 + year * 365,
+    #                                         reporting_interval=30,age_bins=prevalence_agebins,
+    #                                         max_number_reports=13,pretty_format=True,
+    #                                         filename_suffix=f"Monthly_prevalence_{sim_year}")
+                                            
+    #         if(coord_df.at['prevalence_comparison_frequency','value']=='annual'):
+    #             add_malaria_summary_report(task,manifest,
+    #                                     start_day=first_year*365,end_day=last_year*365,
+    #                                     reporting_interval=365,age_bins=prevalence_agebins,
+    #                                     max_number_reports=last_year-first_year+1,
+    #                                     pretty_format=True,
+    #                                     filename_suffix=f"Yearly_prevalence_{first_year+sim_start_year}_to_{last_year+sim_start_year}")
+        
     if(coord_df.at['prevalence_comparison','value']):
         if(coord_df.at['prevalence_comparison_diagnostic','value']!="PCR"):
-            prevalence_df = pd.read_csv(os.path.join(manifest.base_reference_filepath,
-                                                    coord_df.at['prevalence_comparison_reference','value']))
-            prevalence_agebins =  sorted([float(a) for a in prevalence_df['age'].unique()])
-            first_year = int(prevalence_df['year'].min()) - sim_start_year
-            last_year = int(prevalence_df['year'].max()) - sim_start_year + 1
-            
+            prevalence_df_U5 = pd.read_csv(os.path.join(manifest.base_reference_filepath,
+                                                     coord_df.at['prevalence_comparison_reference','value']))
+
+            prevalence_df_U2 = pd.read_csv(os.path.join(manifest.base_reference_filepath,
+                                                     coord_df.at['prevalence_comparison_reference_U2','value']))
+
+            prevalence_agebins_U5 = sorted([float(a) for a in prevalence_df_U5['age'].unique()])
+            prevalence_agebins_U2 = sorted([float(a) for a in prevalence_df_U2['age'].unique()])
+    
+
+            first_year_U5 = int(prevalence_df_U5['year'].min()) - sim_start_year
+            last_year_U5 = int(prevalence_df_U5['year'].max()) - sim_start_year
+
+            first_year_U2 = int(prevalence_df_U2['year'].min()) - sim_start_year
+            last_year_U2 = int(prevalence_df_U2['year'].max()) - sim_start_year
+
             # Logical bounds on years to request
-            if first_year < 0:
-                first_year=0
-            if last_year > simulation_years:
-                last_year=simulation_years
-                
+            first_year = max(first_year, 0)
+            last_year = min(last_year, simulation_years)
+
+            first_year_U5 = max(first_year_U5, 0)
+            last_year_U5 = min(last_year_U5, simulation_years)
+            
+            first_year_U2 = max(first_year_U2, 0)
+            last_year_U2 = min(last_year_U2, simulation_years)
+
             if(coord_df.at['prevalence_comparison_frequency','value']=='monthly'):
-                for year in range(first_year, last_year):
+                for year in range(first_year_U5, last_year_U5+3):
                     start_day = 0 + 365 * year
                     sim_year = sim_start_year + year
-                    add_malaria_summary_report(task,manifest,
-                                               start_day=start_day,end_day=365 + year * 365,
-                                               reporting_interval=30,age_bins=prevalence_agebins,
-                                               max_number_reports=13,pretty_format=True,
-                                               filename_suffix=f"Monthly_prevalence_{sim_year}")
-                                               
+                    add_malaria_summary_report(task, manifest,
+                                                start_day=start_day, end_day=365 + year * 365,
+                                                reporting_interval=30, age_bins=prevalence_agebins_U5,
+                                                max_number_reports=13, pretty_format=True,
+                                                filename_suffix=f"Monthly_prevalence_U5_{sim_year}")
+
+                for year in range(first_year_U2, last_year_U2+1):
+                    start_day = 0 + 365 * year
+                    sim_year = sim_start_year + year
+                    add_malaria_summary_report(task, manifest,
+                                                start_day=start_day, end_day=365 + year * 365,
+                                                reporting_interval=30, age_bins=prevalence_agebins_U2,
+                                                max_number_reports=13, pretty_format=True,
+                                                filename_suffix=f"Monthly_prevalence_U2_{sim_year}")
+
             if(coord_df.at['prevalence_comparison_frequency','value']=='annual'):
-                add_malaria_summary_report(task,manifest,
-                                           start_day=first_year*365,end_day=last_year*365,
-                                           reporting_interval=365,age_bins=prevalence_agebins,
-                                           max_number_reports=last_year-first_year+1,
-                                           pretty_format=True,
-                                           filename_suffix=f"Yearly_prevalence_{first_year+sim_start_year}_to_{last_year+sim_start_year}")
-        
+                add_malaria_summary_report(task, manifest,
+                                            start_day=first_year*365, end_day=last_year*365,
+                                            reporting_interval=365, age_bins=prevalence_agebins_U5,
+                                            max_number_reports=last_year-first_year+1,
+                                            pretty_format=True,
+                                            filename_suffix=f"Yearly_prevalence_{first_year+sim_start_year}_to_{last_year+sim_start_year}")
     return
   
-
 def build_camp(site, coord_df=None):
     """
     Build a campaign input file for the DTK using emod_api.
@@ -568,7 +623,8 @@ def get_comps_id_filename(site: str, level: int = 0):
         file_name = folder_name / (site + '_analyzers')
     else:
         file_name = folder_name / (site + '_download')
-    return file_name.relative_to(manifest.CURRENT_DIR).as_posix()
+    return file_name.as_posix()
+    # return file_name.relative_to(manifest.PROJECT_DIR).as_posix()
 
 
 def load_coordinator_df(characteristic=False, set_index=True):

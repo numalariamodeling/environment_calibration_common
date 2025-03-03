@@ -23,8 +23,10 @@ from calculate_all_scores import  compute_all_scores, load_case_data, load_preva
 sys.path.append('../')
 from helpers import load_coordinator_df
 # from source 'simulations' directory
+
 sys.path.append("../../simulations")
 import manifest as manifest
+
 
 
 def compute_scores_across_site(site):
@@ -32,7 +34,8 @@ def compute_scores_across_site(site):
     coord_df = load_coordinator_df()
     incidence_agebin=float(coord_df.at['incidence_comparison_agebin','value'])
     prevalence_agebin=float(coord_df.at['prevalence_comparison_agebin','value'])
-    scores = compute_all_scores(site,incidence_agebin=incidence_agebin,prevalence_agebin=prevalence_agebin)
+    prevalence_agebin_U2=float(coord_df.at['prevalence_comparison_agebin_U2','value'])
+    scores = compute_all_scores(site,incidence_agebin=incidence_agebin,prevalence_agebin=prevalence_agebin, prevalence_agebin_U2 = prevalence_agebin_U2)
     # Load weighting rules
     weights = pd.read_csv(os.path.join(manifest.input_files_path,"weights.csv"),index_col=0)
     
@@ -44,13 +47,17 @@ def compute_scores_across_site(site):
     if(coord_df.at['incidence_comparison','value']):
         scores['shape_score'] = [float(weights.at['shape_score','weight'])*val for val in scores['shape_score']]
         scores['shape_score'] = scores['shape_score'].fillna(10)
-        scores['intensity_score'] = [float(weights.at['intensity_score','weight'])*val for val in scores['intensity_score']]
-        scores['intensity_score'] = scores['intensity_score'].fillna(10)
+        # scores['intensity_score'] = [float(weights.at['intensity_score','weight'])*val for val in scores['intensity_score']]
+        # scores['intensity_score'] = scores['intensity_score'].fillna(10)
     
     ### Add prevalence score ###
     if(coord_df.at['prevalence_comparison','value']):
         scores['prevalence_score'] = [float(weights.at['prevalence_score','weight'])*val for val in scores['prevalence_score']]
         scores['prevalence_score'] = scores['prevalence_score'].fillna(10)
+
+    ### Add prevalence score U2 ###
+        scores['prevalence_U2_score'] = [float(weights.at['prevalence_U2_score','weight'])*val for val in scores['prevalence_U2_score']]
+        scores['prevalence_U2_score'] = scores['prevalence_U2_score'].fillna(10)
 
     scores = scores.rename(columns={"Sample_ID":"param_set"})
     
@@ -147,14 +154,20 @@ def plot_pfpr_microscopy(site="",plt_dir=os.path.join(manifest.simulation_output
         best = pd.read_csv(os.path.join(wdir,"emod.best.csv"))
         best = best['param_set'][0]
 
-    sim_pfpr = sim_pfpr[sim_pfpr['Sample_ID']==best]
+    sim_pfpr_best = sim_pfpr[sim_pfpr['Sample_ID']==best]
     
     sim_pfpr['date'] = sim_pfpr['month'].map(str)+ '-' +sim_pfpr['Year'].map(str)
     sim_pfpr['date'] = pd.to_datetime(sim_pfpr['date'], format='%m-%Y').dt.strftime('%m-%Y')
     sim_pfpr=sim_pfpr.sort_values(['Year','month'])
+    
+    sim_pfpr_best = sim_pfpr[sim_pfpr['Sample_ID']==best]
+    
     # Plot normalized incidence curve vs. reference data
     plt.figure(figsize=(6, 6), dpi=300, tight_layout=True)
-    plt.plot(sim_pfpr['date'],sim_pfpr['PfPR'], label="Simulation")
+    #plt.plot(sim_pfpr['date'], sim_pfpr['PfPR'], label="Simulation (All Runs)", alpha=0.3)
+    plt.plot(sim_pfpr_best['date'], sim_pfpr_best['PfPR'], label="Best Parameter Set", alpha=1.0)
+    
+        
     plt.scatter(refpfpr['date'], refpfpr['prevalence'], label="Reference", color='k')
     plt.xticks(refpfpr['date'], rotation=45)
     plt.legend()
@@ -259,13 +272,15 @@ def plot_allAge_prevalence(site="",plt_dir=os.path.join(manifest.simulation_outp
 
 if __name__ == "__main__":
 
-    workdir="/projects/b1139/environment_calibration/simulations/output/test_pfpr/"
+    # workdir="/projects/b1139/environment_calibration/simulations/output/Aiyedade_trial_1/"
+    workdir="/home/upf3610/b1139/ipti_pmc/environment_calibration/simulations/output/Aiyedade_trial_24/"
+
     plt_dir=workdir
-    site="Nanoro"
+    site="Aiyedade"
     agebin=100
     coord_df = load_coordinator_df()
     start_year = coord_df.at['simulation_start_year','value']
-    
+
     plot_pfpr_microscopy(site=site,plt_dir=plt_dir,wdir=workdir,agebin=100)
     
     
@@ -278,4 +293,3 @@ if __name__ == "__main__":
     # ACI.to_csv(f"{workdir}/LF_{n}/ACI.csv")
     # plot_incidence(site=site, plt_dir=os.path.join(f"{workdir}/LF_{n}"), wdir=os.path.join(f"{workdir}/LF_{n}"),agebin=100)
     # plot_allAge_prevalence(site=site, plt_dir=os.path.join(f"{workdir}/LF_{n}"), wdir=os.path.join(f"{workdir}/LF_{n}"))
-
