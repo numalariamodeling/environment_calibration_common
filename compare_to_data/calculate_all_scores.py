@@ -79,18 +79,23 @@ def compare_all_age_PCR_prevalence(site):
     #################################################
     ic = prepare_inset_chart_data_PCR(site)
     refpcr = load_prevalence_data(site)
+    refpcr_U2 = load_prevalence_data_U2(site)
     # get average prevalence from insetchart for each year/month/sample_id 
     score3 = ic.groupby(['Sample_ID','year','month']).agg(prevalence=('PCR Parasite Prevalence', 'mean')).reset_index()
     # convert reference_pcr 'year' to start at 0, like simulations
     refpcr['year'] = [(y - start_year) for y in refpcr['year']]
+    refpcr_U2['year'] = [(y - start_year) for y in refpcr_U2['year']]
     # merge with reference data on ['year','month']
     score3 = score3[['year', 'month', 'Sample_ID', 'prevalence']]
     score3 = score3.merge(refpcr,on=["year","month"], how='left')
+    score4 = score3.merge(refpcr_U2,on=["year","month"], how='left')
     # score as sqrt(|diff|)
     score3['prevalence_score'] = score3.apply(lambda row: sqrt(abs(row['prevalence']-row['ref_prevalence'])**2), axis=1)
+    score4['prevalence_U2_score'] = score4.apply(lambda row: sqrt(abs(row['prevalence']-row['ref_prevalence'])**2), axis=1)
     # get average score by sample_id
     score3 = score3.groupby('Sample_ID').agg(prevalence_score=('prevalence_score','mean')).reset_index()
-    return score3
+    score4 = score4.groupby('Sample_ID').agg(prevalence_score=('prevalence_U2_score','mean')).reset_index()
+    return score3, score4
   
 def compare_PfPR_prevalence(site,agebin):
     #### SCORE - Monthly PCR Parasite Prevalence ####
@@ -99,9 +104,11 @@ def compare_PfPR_prevalence(site,agebin):
     if agebin <= 2:
         refpfpr = load_prevalence_data_U2(site)
         fname = "PfPR_monthly_U2.csv"
+        score_name = "prevalence_U2_score"
     else:
         refpfpr = load_prevalence_data(site)
         fname = "PfPR_monthly_U5.csv"
+        score_name = "prevalence_score"
     refpfpr = refpfpr[refpfpr['age'] == agebin]
     # convert reference_pcr 'year' to start at 0, like simulations
     refpfpr['year'] = [(y) for y in refpfpr['year']]
@@ -119,6 +126,7 @@ def compare_PfPR_prevalence(site,agebin):
     score['prevalence_score'] = score.apply(lambda row: sqrt(abs(row['PfPR']-row['prevalence'])**2), axis=1)
     # get average score by sample_id
     score = score.groupby('Sample_ID').agg(prevalence_score=('prevalence_score','mean')).reset_index()
+    score = score.rename(columns={'prevalence_score': score_name})
     return score
 
 
@@ -237,13 +245,11 @@ def compute_all_scores(site,incidence_agebin=100,prevalence_agebin=5, prevalence
             score3 = compare_all_age_PCR_prevalence(site)
             scores = scores.merge(score3[['Sample_ID','prevalence_score']], how='outer', on='Sample_ID')
         if(coord_df.at['prevalence_comparison_diagnostic','value']=="Microscopy"):
-            score3 = compare_PfPR_prevalence(site,agebin=prevalence_agebin)
+            score3 = compare_PfPR_prevalence(site, agebin=prevalence_agebin)
             score4 = compare_PfPR_prevalence(site,agebin=prevalence_agebin_U2)
             scores = scores.merge(score3[['Sample_ID','prevalence_score']], how='outer', on='Sample_ID')
             scores = scores.merge(score4[['Sample_ID','prevalence_U2_score']], how='outer', on='Sample_ID')
     return scores
-  
-  
 
 if __name__ == '__main__':
   site="Aiyedade"
