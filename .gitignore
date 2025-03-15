@@ -1,2 +1,4 @@
-analyzers/__pycache__/
-compare_to_data/__pycache__/
+__pycache__/
+*.pyc
+*.log
+compare_to_data/int_testing.ipynb
