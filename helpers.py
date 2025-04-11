@@ -198,6 +198,8 @@ def build_camp(site, coord_df=None):
     # health-seeking
     if (not pd.isna(coord_df.at['CM_filepath','value'])) and (coord_df.at['CM_filepath','value'] != ''):
         hs_df = pd.read_csv(manifest.input_files_path / Path(coord_df.at['CM_filepath','value']))
+        if 'site' in hs_df.columns:
+            hs_df = hs_df[hs_df.site == coord_df.at['site','value']]
     else:
         hs_df = pd.DataFrame()
   
@@ -208,6 +210,8 @@ def build_camp(site, coord_df=None):
     # NMFs
     if (not pd.isna(coord_df.at['NMF_filepath','value'])) and (coord_df.at['NMF_filepath','value'] != ''):
         nmf_df = pd.read_csv(manifest.input_files_path / Path(coord_df.at['NMF_filepath','value']))
+        if 'site' in nmf_df.columns:
+            nmf_df = nmf_df[nmf_df.site == coord_df.at['site','value']]
     else:
         nmf_df = pd.DataFrame()
     
@@ -218,6 +222,8 @@ def build_camp(site, coord_df=None):
     # SMC
     if (not pd.isna(coord_df.at['SMC_filepath','value'])) and (coord_df.at['SMC_filepath','value'] != ''):
         smc_df = pd.read_csv(manifest.input_files_path / Path(coord_df.at['SMC_filepath','value']))
+        if 'site' in smc_df.columns:
+            smc_df = smc_df[smc_df.site == coord_df.at['site','value']]
     else:
         smc_df = pd.DataFrame()
     if not smc_df.empty:
@@ -231,7 +237,14 @@ def build_camp(site, coord_df=None):
                 itn_df = pd.read_csv(manifest.input_files_path / Path(coord_df.at['ITN_filepath','value']))
                 itn_age = pd.read_csv(manifest.input_files_path / Path(coord_df.at['ITN_age_filepath','value']))
                 itn_season = pd.read_csv(manifest.input_files_path / Path(coord_df.at['ITN_season_filepath','value']))
-    
+
+                if 'site' in itn_df.columns:
+                    itn_df = itn_df[itn_df.site == coord_df.at['site', 'value']]
+                if 'site' in itn_age.columns:
+                    itn_age = itn_age[itn_age.site == coord_df.at['site', 'value']]
+                if 'site' in itn_season.columns:
+                    itn_season = itn_season[itn_season.site == coord_df.at['site', 'value']]
+
     if not itn_df.empty:
         # Distribute ITNs with age- and season-based usage patterns
         add_itns(camp,itn_df,itn_age,itn_season)
