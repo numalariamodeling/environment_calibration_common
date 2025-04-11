@@ -130,6 +130,6 @@ if __name__ == "__main__":
                         help='Comps priority', default=manifest.priority)
     parser.add_argument('--calib_params', '-X', type=str, help='calib parameter set')
     args = parser.parse_args()
-    generate_demographics(site=args.site)
+    generate_demographics()  # Use pre-generated demographics
     submit_sim(site=args.site, nSims=args.nSims, characteristic=args.characteristic, priority=args.priority,
                not_use_singularity=args.not_use_singularity, X=args.calib_params)
