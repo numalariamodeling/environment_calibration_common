@@ -612,9 +612,9 @@ def generate_demographics():
                                                      CrudeRate(float(BR)))
     print("Amending Birth Rate")
     demog.SetBirthRate(CrudeRate(float(BR) * int(population)))
-    with open(f"../simulation_inputs/demographics_files/{site}_demographics.json", "w") as outfile:
+    with open(f"{manifest.input_files_path}/demographics_files/{site}_demographics.json", "w") as outfile:
         json.dump(demog.to_dict(), outfile, indent=3, sort_keys=True)
-    print(f"Saved to ../simulation_inputs/demographics_files/{site}_demographics.json")
+        print(f"Saved to {manifest.input_files_path}/demographics_files/{site}_demographics.json")
     return demog
   
 
@@ -629,8 +629,8 @@ def extract_climate(flatten_temp=True):
     site = coord_df.at['site','value']
     start_yr = int(coord_df.at['climate_start_year','value'])
     length = int(coord_df.at['climate_year_dur','value'])
-    extractdir = '../simulation_inputs/tmp/'
-    outdir = os.path.join('../simulation_inputs/site_climate', site)
+    extractdir = f'{manifest.input_files_path}/tmp/'
+    outdir = os.path.join(f'{manifest.input_files_path}/site_climate', site)
     if not os.path.exists(extractdir):
         os.makedirs(extractdir)
     site_climate=coord_df.transpose().reset_index()
