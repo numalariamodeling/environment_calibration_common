@@ -1,4 +1,2 @@
-__pycache__/
+.idea/
 *.pyc
-*.log
-compare_to_data/int_testing.ipynb
