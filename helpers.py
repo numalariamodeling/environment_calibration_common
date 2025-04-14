@@ -33,7 +33,7 @@ from emodpy_malaria.reporters.builtin import (
     add_report_vector_stats
 )
 ##### from within environment_calibration_common submodule ##### 
-from environment_calibration_common.malaria_vaccdrug_campaigns import *
+from environment_calibration_common.malaria_vaccdrug_campaigns import add_vaccdrug_smc, add_vaccdrug_pmc
 #from snt.support_files.malaria_vaccdrug_campaigns import *
 
 ##### from malaria_vaccdrug_campaigns import add_vaccdrug_campaign ##### 
@@ -78,15 +78,6 @@ def set_param_fn(config):
                                                   "Received_SMC_Vaccine",
                                                   "Bednet_Using","Bednet_Discarded","Bednet_Got_New_One"]
 
-    config.parameters.Report_Event_Recorder = 1
-    config.parameters.Report_Event_Recorder_Individual_Properties = []
-    config.parameters.Report_Event_Recorder_Events = ['Received_NMF_Treatment',
-                                                      'Received_Severe_Treatment',
-                                                      'Received_Treatment',
-                                                      'NewClinicalCase']
-    config.parameters.Report_Event_Recorder_Ignore_Events_In_List = 0
-
-
     # SMC parameters
     drug_param_dict = {'drug_box_day': 2.0, 'drug_irbc_killing': 10.8, 'drug_hep_killing': 3.64}
     drug_box_day = drug_param_dict['drug_box_day']
@@ -94,6 +85,15 @@ def set_param_fn(config):
     drug_hep_killing = drug_param_dict['drug_hep_killing']
     make_vehicle_drug(config,drug_box_day=drug_box_day, drug_irbc_killing=drug_irbc_killing,
                       drug_hep_killing=drug_hep_killing)
+
+    # PMC parameters
+    drug_param_dict = {'drug_box_day': 2.0, 'drug_irbc_killing': 16.03, 'drug_hep_killing': 0.92}
+    drug_box_day = drug_param_dict['drug_box_day']
+    drug_irbc_killing = drug_param_dict['drug_irbc_killing']
+    drug_hep_killing = drug_param_dict['drug_hep_killing']
+    make_vehicle_drug(config, drug_box_day=drug_box_day, drug_irbc_killing=drug_irbc_killing,
+                      drug_hep_killing=drug_hep_killing)
+
     return config
 
 
@@ -485,7 +485,7 @@ def add_smc(camp,smc_df):
                                         'agemax': row['agemax']},
                           receiving_vaccine_event="Received_SMC_Vaccine", receiving_drugs_event="Received_Vehicle")                 
 
-#FIXME
+
 def add_pmc(camp, smc_df):
     coord_df = load_coordinator_df(characteristic=False, set_index=True)
     sim_start_yr = int(coord_df.at['simulation_start_year', 'value'])
