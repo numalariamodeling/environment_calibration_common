@@ -120,6 +120,7 @@ def add_outputs(task, site):
     ### Incidence-related reports ###     
     if(coord_df.at['incidence_comparison','value']):
         incidence_df = pd.read_csv(os.path.join(manifest.base_reference_filepath,coord_df.at['incidence_comparison_reference','value']))
+        incidence_df = incidence_df[incidence_df["site"] == coord_df.at["site", "value"]]
         incidence_agebins = sorted([float(a) for a in incidence_df['age'].unique()])
         first_year = int(incidence_df['year'].min()) - sim_start_year
         last_year = int(incidence_df['year'].max()) - sim_start_year + 2
@@ -187,8 +188,12 @@ def add_outputs(task, site):
             prevalence_df_U5 = pd.read_csv(os.path.join(manifest.base_reference_filepath,
                                                      coord_df.at['prevalence_comparison_reference','value']))
 
+            prevalence_df_U5 = prevalence_df_U5[prevalence_df_U5["site"] == coord_df.at["site", "value"]]
+
             prevalence_df_U2 = pd.read_csv(os.path.join(manifest.base_reference_filepath,
                                                      coord_df.at['prevalence_comparison_reference_U2','value']))
+
+            prevalence_df_U2 = prevalence_df_U2[prevalence_df_U2["site"] == coord_df.at["site", "value"]]
 
             prevalence_agebins_U5 = sorted([float(a) for a in prevalence_df_U5['age'].unique()])
             prevalence_agebins_U2 = sorted([float(a) for a in prevalence_df_U2['age'].unique()])
@@ -254,6 +259,7 @@ def build_camp(site, coord_df=None):
     # health-seeking
     if (not pd.isna(coord_df.at['CM_filepath','value'])) and (not (coord_df.at['CM_filepath','value'] == '')):
         hs_df = pd.read_csv(manifest.input_files_path / coord_df.at['CM_filepath','value'])
+        # hs_df = hs_df[hs_df["site"] == coord_df.at["site", "value"]]
     else:
         hs_df = pd.DataFrame()
   
@@ -284,6 +290,7 @@ def build_camp(site, coord_df=None):
         if (not pd.isna(coord_df.at['ITN_age_filepath','value'])) and (not (coord_df.at['ITN_age_filepath','value'] == '')):
             if(not pd.isna(coord_df.at['ITN_season_filepath','value'])) and (not (coord_df.at['ITN_season_filepath','value'] == '')):
                 itn_df = pd.read_csv(manifest.input_files_path / coord_df.at['ITN_filepath','value'])
+                itn_df = itn_df[itn_df["site"] == coord_df.at["site", "value"]]
                 itn_age = pd.read_csv(manifest.input_files_path / coord_df.at['ITN_age_filepath','value'])
                 itn_season = pd.read_csv(manifest.input_files_path / coord_df.at['ITN_season_filepath','value'])
         

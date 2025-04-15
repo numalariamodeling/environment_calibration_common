@@ -21,17 +21,21 @@ def my_func(X, wdir):
     coord_df = load_coordinator_df()
     site = coord_df.at['site', 'value']
     sites = [site]
-    
+
     incidence_agebin = float(coord_df.at['incidence_comparison_agebin', 'value'])
     prevalence_agebin = float(coord_df.at['prevalence_comparison_agebin', 'value'])
+    prevalence_agebin_U2 = float(coord_df.at['prevalence_comparison_agebin_U2', 'value'])
+    
+    # incidence_agebin = float(coord_df.at['incidence_comparison_agebin', 'value'])
+    # prevalence_agebin = float(coord_df.at['prevalence_comparison_agebin', 'value'])
 
-    # Safely handle prevalence_agebin_U2 to avoid ValueError
-    prevalence_value = coord_df.at['prevalence_comparison_reference_U2', 'value']
-    if isinstance(prevalence_value, (int, float)):  # If already a number
-        prevalence_agebin_U2 = float(prevalence_value)
-    else:
-        print(f"Warning: Expected a numeric value for 'prevalence_comparison_reference_U2', but got '{prevalence_value}'.")
-        prevalence_agebin_U2 = None  # or assign a default numeric value like 0.0
+    # # Safely handle prevalence_agebin_U2 to avoid ValueError
+    # prevalence_value = coord_df.at['prevalence_comparison_reference_U2', 'value']
+    # if isinstance(prevalence_value, (int, float)):  # If already a number
+    #     prevalence_agebin_U2 = float(prevalence_value)
+    # else:
+    #     print(f"Warning: Expected a numeric value for 'prevalence_comparison_reference_U2', but got '{prevalence_value}'.")
+    #     prevalence_agebin_U2 = None  # or assign a default numeric value like 0.0
 
     n_sims = int(coord_df.at['nSims', 'value'])
 
