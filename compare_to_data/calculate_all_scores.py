@@ -251,8 +251,10 @@ def compute_all_scores(site,incidence_agebin=100,prevalence_agebin=5, prevalence
             scores = scores.merge(score4[['Sample_ID','prevalence_U2_score']], how='outer', on='Sample_ID')
     return scores
 
+sites = ['Atakumosa West', 'Aiyedade', 'Ede South', 'Egbedore', 'Ife North', 'Iwo', 'Obokun', 'Irewole']
+
 if __name__ == '__main__':
-  site="Aiyedade"
+  site=sites[1]
   print(compare_incidence_shape(site,agebin=100))
 #   print(compare_annual_incidence(site,agebin=100))
   print(compare_all_age_PCR_prevalence(site))

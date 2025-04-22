@@ -494,11 +494,26 @@ def plot_allAge_prevalence(site="",plt_dir=os.path.join(manifest.simulation_outp
 
 if __name__ == "__main__":
 
-    # workdir="/projects/b1139/environment_calibration/simulations/output/Aiyedade_trial_1/"
-    workdir="/home/upf3610/b1139/ipti_pmc/environment_calibration/simulations/output/Aiyedade_trial_29/"
+    coord_df = pd.read_csv(manifest.simulation_coordinator_path)
+    # sites = ['Atakumosa West', 'Aiyedade', 'Ede South', 'Egbedore', 'Ife North', 'Iwo', 'Obokun', 'Irewole']
+    # site = coord_df.loc[coord_df['option'] == 'site', 'value']  # Select the site of interest
+    # site_dir_name = coord_df.loc[coord_df['option'] == 'exp_label', 'value']
+    site = coord_df.at['site', 'value']
+    # site_dir_name = coord_df.at['exp_label', 'value'] = str(exp_label)
+    # Convert site name to a valid directory name if needed (e.g., remove spaces)
+
+    site_dir_name = site.replace(" ", "_") + "_trial_30"
+
+    # Construct the workdir path dynamically
+    base_path = "/gpfs/home/upf3610/b1139/ipti_pmc/environment_calibration/simulations/output/"
+    workdir = f"{base_path}{site_dir_name}/"
+    
+    # # workdir="/projects/b1139/environment_calibration/simulations/output/Aiyedade_trial_1/"
+    # workdir="/home/upf3610/b1139/ipti_pmc/environment_calibration/simulations/output/Aiyedade_trial_29/"
 
     plt_dir=workdir
-    site="Aiyedade"
+    # sites = ['Atakumosa West', 'Aiyedade', 'Ede South', 'Egbedore', 'Ife North', 'Iwo', 'Obokun', 'Irewole']
+    # site=sites[1]
     agebin=100
     coord_df = load_coordinator_df()
     start_year = coord_df.at['simulation_start_year','value']
