@@ -6,6 +6,7 @@ import sys
 from idmtools.analysis.analyze_manager import AnalyzeManager
 from idmtools.core import ItemType
 import pandas as pd
+from pathlib import Path
 # from within analyzers/
 sys.path.append(os.path.dirname(__file__))
 from .analyzer_collection import (
@@ -159,4 +160,4 @@ if __name__ == "__main__":
     outdir = args.site
     analyze_experiment(platform, 
                        args.expid,
-                       os.path.join(manifest.output_dir, outdir))
+                      Path( os.path.join(manifest.output_dir, outdir)))
