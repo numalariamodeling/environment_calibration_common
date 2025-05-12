@@ -10,6 +10,7 @@ import pandas as pd
 import warnings
 import sys
 import math
+from pathlib import Path
 import numpy as np
 from datetime import datetime
 from functools import partial
@@ -257,9 +258,8 @@ def build_camp(site, coord_df=None):
     # === INTERVENTIONS === #
 
     # health-seeking
-    if (not pd.isna(coord_df.at['CM_filepath','value'])) and (not (coord_df.at['CM_filepath','value'] == '')):
-        hs_df = pd.read_csv(manifest.input_files_path / coord_df.at['CM_filepath','value'])
-        # hs_df = hs_df[hs_df["site"] == coord_df.at["site", "value"]]
+    if (not pd.isna(coord_df.at['CM_filepath','value'])) and (coord_df.at['CM_filepath','value'] != ''):
+        hs_df = pd.read_csv(manifest.input_files_path / Path(coord_df.at['CM_filepath','value']))
     else:
         hs_df = pd.DataFrame()
   
@@ -268,17 +268,18 @@ def build_camp(site, coord_df=None):
         add_health_seeking(camp,hs_df)
     
     # NMFs
-    if (not pd.isna(coord_df.at['NMF_filepath','value'])) and (not (coord_df.at['NMF_filepath','value'] == '')):
-        nmf_df = pd.read_csv(manifest.input_files_path / coord_df.at['NMF_filepath','value'])
+    if (not pd.isna(coord_df.at['NMF_filepath','value'])) and (coord_df.at['NMF_filepath','value'] != ''):
+        nmf_df = pd.read_csv(manifest.input_files_path / Path(coord_df.at['NMF_filepath','value']))
     else:
         nmf_df = pd.DataFrame()
-    if (not pd.isna(coord_df.at['NMF_filepath','value'])) and (not (coord_df.at['NMF_filepath','value'] == '')):
+    
+    if (not pd.isna(coord_df.at['NMF_filepath','value'])) and (coord_df.at['NMF_filepath','value'] != ''):
         if not hs_df.empty:
             add_nmf_hs(camp, hs_df, nmf_df)
     
     # SMC
-    if (not pd.isna(coord_df.at['SMC_filepath','value'])) and (not (coord_df.at['SMC_filepath','value'] == '')):
-        smc_df = pd.read_csv(manifest.input_files_path / coord_df.at['SMC_filepath','value'])
+    if (not pd.isna(coord_df.at['SMC_filepath','value'])) and (coord_df.at['SMC_filepath','value'] != ''):
+        smc_df = pd.read_csv(manifest.input_files_path / Path(coord_df.at['SMC_filepath','value']))
     else:
         smc_df = pd.DataFrame()
     if not smc_df.empty:
@@ -286,14 +287,13 @@ def build_camp(site, coord_df=None):
 
     # ITNS
     itn_df = pd.DataFrame()
-    if (not pd.isna(coord_df.at['ITN_filepath','value'])) and (not (coord_df.at['ITN_filepath','value'] == '')):
-        if (not pd.isna(coord_df.at['ITN_age_filepath','value'])) and (not (coord_df.at['ITN_age_filepath','value'] == '')):
-            if(not pd.isna(coord_df.at['ITN_season_filepath','value'])) and (not (coord_df.at['ITN_season_filepath','value'] == '')):
-                itn_df = pd.read_csv(manifest.input_files_path / coord_df.at['ITN_filepath','value'])
-                itn_df = itn_df[itn_df["site"] == coord_df.at["site", "value"]]
-                itn_age = pd.read_csv(manifest.input_files_path / coord_df.at['ITN_age_filepath','value'])
-                itn_season = pd.read_csv(manifest.input_files_path / coord_df.at['ITN_season_filepath','value'])
-        
+    if (not pd.isna(coord_df.at['ITN_filepath','value'])) and (coord_df.at['ITN_filepath','value'] != ''):
+        if (not pd.isna(coord_df.at['ITN_age_filepath','value'])) and (coord_df.at['ITN_age_filepath','value'] != ''):
+            if (not pd.isna(coord_df.at['ITN_season_filepath','value'])) and (coord_df.at['ITN_season_filepath','value'] != ''):
+                itn_df = pd.read_csv(manifest.input_files_path / Path(coord_df.at['ITN_filepath','value']))
+                itn_age = pd.read_csv(manifest.input_files_path / Path(coord_df.at['ITN_age_filepath','value']))
+                itn_season = pd.read_csv(manifest.input_files_path / Path(coord_df.at['ITN_season_filepath','value']))
+    
     if not itn_df.empty:
         # Distribute ITNs with age- and season-based usage patterns
         add_itns(camp,itn_df,itn_age,itn_season)
@@ -320,7 +320,7 @@ def set_simulation_scenario(simulation, site, csv_path):
     demographics_filename = str(coord_df.at['demographics_filepath','value'])
     #print(demographics_filename)
     if demographics_filename and demographics_filename != 'nan':
-        simulation.task.transient_assets.add_asset(manifest.input_files_path / demographics_filename)
+        simulation.task.transient_assets.add_asset(manifest.input_files_path / Path(demographics_filename))
         simulation.task.config.parameters.Demographics_Filenames = [demographics_filename.rsplit('/',1)[-1]]
     simulation.task.config.parameters.Age_Initialization_Distribution_Type = 'DISTRIBUTION_COMPLEX'
 
@@ -677,9 +677,10 @@ def generate_demographics():
                                                      CrudeRate(float(BR)))
     print("Amending Birth Rate")
     demog.SetBirthRate(CrudeRate(float(BR) * int(population)))
-    with open(f"../simulation_inputs/demographics_files/{site}_demographics.json", "w") as outfile:
+    fname = Path(f"{manifest.input_files_path}/demographics_files/{site}_demographics.json")
+    with open(fname, "w") as outfile:
         json.dump(demog.to_dict(), outfile, indent=3, sort_keys=True)
-    print(f"Saved to ../simulation_inputs/demographics_files/{site}_demographics.json")
+        print(f"Saved to {fname}")
     return demog
   
 
@@ -694,19 +695,19 @@ def extract_climate(flatten_temp=True):
     site = coord_df.at['site','value']
     start_yr = int(coord_df.at['climate_start_year','value'])
     length = int(coord_df.at['climate_year_dur','value'])
-    extractdir = '../simulation_inputs/tmp/'
-    outdir = os.path.join('../simulation_inputs/site_climate', site)
+    extractdir = f'{manifest.input_files_path}/tmp/'
+    outdir = Path(os.path.join(f'{manifest.input_files_path}/site_climate', site))
     if not os.path.exists(extractdir):
         os.makedirs(extractdir)
     site_climate=coord_df.transpose().reset_index()
     site_climate = site_climate[['lon','lat','nodes']]
     #print(site_climate)
-    site_climate.to_csv(f"{manifest.simulation_input_filepath}/{site}_climate.csv")
+    site_climate.to_csv(Path(f"{manifest.simulation_input_filepath}/{site}_climate.csv"))
     weather_dir = extractdir
     startdate = start_yr * 1000 + 1
     enddate = (start_yr + length - 1) * 1000 + 365
     wr = generate_weather(platform="Calculon",
-                          site_file=f"{manifest.simulation_input_filepath}/{site}_climate.csv",
+                          site_file=Path(f"{manifest.simulation_input_filepath}/{site}_climate.csv"),
                           start_date=startdate,
                           end_date=enddate,
                           node_column="nodes",

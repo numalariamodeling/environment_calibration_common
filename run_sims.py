@@ -3,6 +3,7 @@
 import argparse
 import numpy as np
 import os
+from pathlib import Path
 from functools import \
     partial 
 from idmtools.builders import SimulationBuilder
@@ -105,7 +106,7 @@ def _create_task(my_manifest,site):
 
     task.config.parameters.Birth_Rate_Dependence = "FIXED_BIRTH_RATE"
     task.common_assets.add_directory(
-        os.path.join(manifest.input_files_path, 'site_climate', site), relative_path="climate"
+       Path(os.path.join(manifest.input_files_path, 'site_climate', site)), relative_path="climate"
     )
     add_outputs(task,site)
     return task

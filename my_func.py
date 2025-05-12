@@ -6,6 +6,7 @@ import time
 import pandas as pd
 import numpy as np
 import sys
+from pathlib import Path
 # from within environment_calibration_common submodule
 from helpers import load_coordinator_df
 from translate_parameters import translate_parameters, get_initial_samples
@@ -54,13 +55,13 @@ def my_func(X, wdir):
     df.to_csv(f"{wdir}/translated_params.csv")
 
     for i, my_site in enumerate(sites):
-        sim_output_path = os.path.join(manifest.simulation_output_filepath, my_site)
+        sim_output_path = Path(os.path.join(manifest.simulation_output_filepath, my_site))
         if os.path.exists(sim_output_path):
             shutil.rmtree(sim_output_path)
         submit_sim(site=my_site, nSims=n_sims, X=df)
 
     while True:
-        outputs = [os.path.exists(os.path.join(manifest.simulation_output_filepath, my_site, 'finished.txt')) for my_site in sites]
+        outputs = [os.path.exists(Path(os.path.join(manifest.simulation_output_filepath, my_site, 'finished.txt'))) for my_site in sites]
         if all(outputs):  
             for my_site in sites:
                 Y = compute_scores_across_site(my_site, incidence_agebin=incidence_agebin, prevalence_agebin=prevalence_agebin, prevalence_agebin_U2=prevalence_agebin_U2)

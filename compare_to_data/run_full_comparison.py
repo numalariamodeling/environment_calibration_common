@@ -1,6 +1,7 @@
 ##### Import required packages #####
 # standard packages
 import sys
+from pathlib import Path
 import numpy as np
 import warnings
 import pandas as pd
@@ -110,7 +111,7 @@ def plot_incidence(site="",plt_dir=os.path.join(manifest.simulation_output_filep
     rcases = case_df.groupby(['month','site'])['norm_repincd'].agg(np.nanmean).reset_index()
     
     ## Read in simulation output file
-    sim_cases = pd.read_csv(os.path.join(manifest.simulation_output_filepath,site,"ClinicalIncidence_monthly.csv"))
+    sim_cases = pd.read_csv(Path(os.path.join(manifest.simulation_output_filepath,site,"ClinicalIncidence_monthly.csv")))
     # filter to age of interest
     sim_cases = sim_cases[sim_cases['agebin']==agebin]
     # filter to best param_set
@@ -140,7 +141,7 @@ def plot_incidence(site="",plt_dir=os.path.join(manifest.simulation_output_filep
     plt.ylim(0, 1.1)
     plt.xlim()
     plt.show()
-    plt.savefig(os.path.join(plt_dir,f"incidence_{site}.png"))
+    plt.savefig(Path(os.path.join(plt_dir,f"incidence_{site}.png")))
     plt.clf()
     
     
@@ -201,7 +202,7 @@ def plot_incidence(site="",plt_dir=os.path.join(manifest.simulation_output_filep
 
 
 def plot_pfpr_microscopy(site="", plt_dir=os.path.join(manifest.simulation_output_filepath, "_plots"), wdir='.', agebin=5):
-    
+    wdir = Path(wdir)
     coord_df = load_coordinator_df()
     start_year = int(coord_df.at['simulation_start_year', 'value'])
     
@@ -215,7 +216,7 @@ def plot_pfpr_microscopy(site="", plt_dir=os.path.join(manifest.simulation_outpu
     refpfpr = refpfpr.sort_values(['year', 'month'])
     
     # Load simulation data
-    sim_pfpr = pd.read_csv(os.path.join(manifest.simulation_output_filepath, site, "PfPR_monthly_U5.csv"))
+    sim_pfpr = pd.read_csv(Path(os.path.join(manifest.simulation_output_filepath, site, "PfPR_monthly_U5.csv")))
     # Filter to age of interest
     sim_pfpr = sim_pfpr[sim_pfpr['agebin'] == agebin]
     # Get mean PfPR by month, year, and Sample_ID across runs
@@ -265,7 +266,7 @@ def plot_pfpr_microscopy(site="", plt_dir=os.path.join(manifest.simulation_outpu
     plt.gcf().autofmt_xdate()
     
     # Save and show the plot
-    plt.savefig(os.path.join(plt_dir, f"prevalence_{site}_U5.png"))
+    plt.savefig(Path(os.path.join(plt_dir, f"prevalence_{site}_U5.png")))
     plt.show()
     plt.clf()
 
@@ -342,6 +343,7 @@ def plot_pfpr_microscopy(site="", plt_dir=os.path.join(manifest.simulation_outpu
 
 
 def plot_pfpr_microscopy_u2(site="", plt_dir=os.path.join(manifest.simulation_output_filepath, "_plots"), wdir='.', agebin=2):
+    wdir = Path(wdir)
     # Load coordinator data
     coord_df = load_coordinator_df()
     start_year = int(coord_df.at['simulation_start_year', 'value'])
@@ -354,7 +356,7 @@ def plot_pfpr_microscopy_u2(site="", plt_dir=os.path.join(manifest.simulation_ou
     refpfpr = refpfpr.sort_values(['year', 'month'])
 
     # Load simulation data
-    sim_pfpr = pd.read_csv(os.path.join(manifest.simulation_output_filepath, site, "PfPR_monthly_U2.csv"))
+    sim_pfpr = pd.read_csv(Path(os.path.join(manifest.simulation_output_filepath, site, "PfPR_monthly_U2.csv")))
     sim_pfpr = sim_pfpr[sim_pfpr['agebin'] == agebin]
     sim_pfpr['date'] = pd.to_datetime(sim_pfpr['month'].astype(str) + '-' + sim_pfpr['Year'].astype(str), format='%m-%Y')
     sim_pfpr = sim_pfpr.sort_values(['Year', 'month'])
@@ -398,19 +400,19 @@ def plot_pfpr_microscopy_u2(site="", plt_dir=os.path.join(manifest.simulation_ou
 
     # Save and show the plot
     os.makedirs(plt_dir, exist_ok=True)
-    plt.savefig(os.path.join(plt_dir, f"prevalence_{site}_2023.png"))
+    plt.savefig(Path(os.path.join(plt_dir, f"prevalence_{site}_2023.png")))
     plt.show()
     plt.clf()
     
 def save_rangeEIR(site="", wdir="./"):
     # Get best parameter set
-    best = pd.read_csv(f"{wdir}/emod.best.csv")
+    best = pd.read_csv(Path(f"{wdir}/emod.best.csv"))
     best = best['param_set'][0]
     
     # Load simulation InsetChart for Daily EIR values
     # Note: Would be better to choose this version only if InsetChart is required for other comparisons
     #       Could use summary report channel instead
-    sim_df = pd.read_csv(os.path.join(manifest.simulation_output_filepath,site,"InsetChart_EIR.csv"))
+    sim_df = pd.read_csv(Path(os.path.join(manifest.simulation_output_filepath,site,"InsetChart_EIR.csv")))
     sim_df = sim_df.rename(columns={'Sample_ID':'param_set'})
     # Filter to best parameter set
     sim_df = sim_df[sim_df['param_set']==best]
@@ -428,8 +430,8 @@ def save_rangeEIR(site="", wdir="./"):
 
 def save_AnnualIncidence(site="", wdir="./",agebin=5):
     ### Load analyzed monthly MalariaSummaryReport from simulation
-    sim_cases = pd.read_csv(os.path.join(manifest.simulation_output_filepath,site,"ClinicalIncidence_monthly.csv"))
-    sim_cases = pd.read_csv(os.path.join(manifest.simulation_output_filepath,site,"ClinicalIncidence_monthly.csv"))
+    sim_cases = pd.read_csv(Path(os.path.join(manifest.simulation_output_filepath,site,"ClinicalIncidence_monthly.csv")))
+    sim_cases = pd.read_csv(Path(os.path.join(manifest.simulation_output_filepath,site,"ClinicalIncidence_monthly.csv")))
     # filter to age
     sim_cases = sim_cases[sim_cases['agebin']==agebin]
     sim_cases['Inc'] = sim_cases['Cases'] #/ sim_cases['Pop']
@@ -439,7 +441,7 @@ def save_AnnualIncidence(site="", wdir="./",agebin=5):
     sim_cases = sim_cases.groupby(['Sample_ID','agebin'])['Inc'].agg(np.nanmean).reset_index()
     sim_cases = sim_cases.rename(columns={'Sample_ID':'param_set'})
     
-    best = pd.read_csv(f"{wdir}/emod.best.csv")
+    best = pd.read_csv(Path(f"{wdir}/emod.best.csv"))
     best = best['param_set'][0]
     
     aci = sim_cases[sim_cases['param_set']==best]
@@ -450,11 +452,11 @@ def plot_allAge_prevalence(site="",plt_dir=os.path.join(manifest.simulation_outp
   
     coord_df=load_coordinator_df()
     start_year=int(coord_df.at['simulation_start_year','value'])
-    sim_df = pd.read_csv(os.path.join(manifest.simulation_output_filepath,site,"InsetChart_PCR.csv"))
+    sim_df = pd.read_csv(Path(os.path.join(manifest.simulation_output_filepath,site,"InsetChart_PCR.csv")))
     
     sim_df = sim_df.rename(columns={'Sample_ID':'param_set'})
   
-    best = pd.read_csv(f"{wdir}/emod.best.csv")
+    best = pd.read_csv(Path(f"{wdir}/emod.best.csv"))
     best = best['param_set'][0]
     sim_df = sim_df[sim_df['param_set']==best]
     sim_df['date'] = [timedelta(days=t) + datetime.strptime(f"{start_year}0101", '%Y%m%d') for t in sim_df['time']]
@@ -467,8 +469,8 @@ def plot_allAge_prevalence(site="",plt_dir=os.path.join(manifest.simulation_outp
     sim_df['year'] = sim_df['year'] + start_year 
     sim_df = sim_df[sim_df['month']<=12]
     
-    refpcr = pd.read_csv(os.path.join(manifest.base_reference_filepath,
-                                      coord_df.at['prevalence_comparison_reference','value']))
+    refpcr = pd.read_csv(Path(os.path.join(manifest.base_reference_filepath,
+                                      coord_df.at['prevalence_comparison_reference','value'])))
     refpcr['date']=np.nan
     # ref_date_format = '%m/%d/%Y'
     for index, row in refpcr.iterrows():
@@ -489,7 +491,7 @@ def plot_allAge_prevalence(site="",plt_dir=os.path.join(manifest.simulation_outp
     plt.ylim(0, 1)
     plt.gcf().autofmt_xdate()
     plt.show()
-    plt.savefig(os.path.join(plt_dir,f"prevalence_{site}.png"))
+    plt.savefig(Path(os.path.join(plt_dir,f"prevalence_{site}.png")))
     plt.clf()
 
 if __name__ == "__main__":
@@ -505,8 +507,8 @@ if __name__ == "__main__":
     site_dir_name = site.replace(" ", "_") + "_trial_30"
 
     # Construct the workdir path dynamically
-    base_path = "/gpfs/home/upf3610/b1139/ipti_pmc/environment_calibration/simulations/output/"
-    workdir = f"{base_path}{site_dir_name}/"
+    base_path = "/gpfs/projects/b1139/ipti_pmc/_mrm9534/environment_calibration/simulations/output/"
+    workdir =Path( f"{base_path}{site_dir_name}/")
     
     # # workdir="/projects/b1139/environment_calibration/simulations/output/Aiyedade_trial_1/"
     # workdir="/home/upf3610/b1139/ipti_pmc/environment_calibration/simulations/output/Aiyedade_trial_29/"
