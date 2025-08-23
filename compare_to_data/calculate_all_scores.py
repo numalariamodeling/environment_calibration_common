@@ -1,6 +1,7 @@
 ##### Import required packages #####
 # standard packages
 import sys
+from pathlib import Path
 from math import sqrt, exp
 import os
 from statistics import mean
@@ -58,7 +59,7 @@ def load_prevalence_data_U2(site):
 
 def prepare_inset_chart_data_PCR(site):
     ### Load InsetChart.csv
-    ic = pd.read_csv(os.path.join(manifest.simulation_output_filepath,site, "InsetChart_PCR.csv"))
+    ic = pd.read_csv(Path(os.path.join(manifest.simulation_output_filepath,site, "InsetChart_PCR.csv")))
     # convert Time to year and month
     ic['year'] = [np.trunc(t/365) for t in ic['time']]
     ic['month'] = ic.apply(lambda row: np.trunc((row['time'] - (row['year']*365))/30.001)+1, axis=1)
@@ -67,7 +68,7 @@ def prepare_inset_chart_data_PCR(site):
   
 def prepare_inset_chart_data_EIR(site):
     ### Load InsetChart.csv
-    ic = pd.read_csv(os.path.join(manifest.simulation_output_filepath,site, "InsetChart_EIR.csv"))
+    ic = pd.read_csv(Path(os.path.join(manifest.simulation_output_filepath,site, "InsetChart_EIR.csv")))
     # convert Time to year and month
     ic['year'] = [np.trunc(t/365) for t in ic['time']]
     ic['month'] = ic.apply(lambda row: np.trunc((row['time'] - (row['year']*365))/30.001)+1, axis=1)
@@ -112,7 +113,7 @@ def compare_PfPR_prevalence(site,agebin):
     refpfpr = refpfpr[refpfpr['age'] == agebin]
     # convert reference_pcr 'year' to start at 0, like simulations
     refpfpr['year'] = [(y) for y in refpfpr['year']]
-    sim_pfpr = pd.read_csv(os.path.join(manifest.simulation_output_filepath,site,fname))
+    sim_pfpr = pd.read_csv(Path(os.path.join(manifest.simulation_output_filepath,site,fname)))
     # filter to age of interest
     sim_pfpr = sim_pfpr[sim_pfpr['agebin']==agebin]
     # get mean PfPR by month, year, and Sample_ID across runs
@@ -180,7 +181,7 @@ def compare_incidence_shape(site,agebin):
     # get average normalized incidence per month
     rcases = case_df.groupby(['month','site'])['norm_repincd'].agg(np.nanmean).reset_index()
     
-    sim_cases = pd.read_csv(os.path.join(manifest.simulation_output_filepath,site,"ClinicalIncidence_monthly.csv"))
+    sim_cases = pd.read_csv(Path(os.path.join(manifest.simulation_output_filepath,site,"ClinicalIncidence_monthly.csv")))
     # filter to age of interest
     sim_cases = sim_cases[sim_cases['agebin']==agebin]
     # get mean population and clinical cases by month, year, and Sample_ID
@@ -208,17 +209,18 @@ def compare_incidence_shape(site,agebin):
 def compare_annual_incidence(site,agebin):
     ##### Score - Mean annual cases per person #####
     ################################################
-    
+    site_df = pd.read_csv(manifest.site_coordinator_path)
+    site_df = site_df[site_df['site'] == site]
     # Reference data
     rcases = load_case_data(site)
     rcases = rcases[rcases['site']==site]
-    rcases['incidence']=rcases['case'] / 10000      # assuming population of 10,0000
+    rcases['incidence']=rcases['case'] / site_df['population']      # assuming population of 10,0000
     rcases = rcases.groupby(['age','year'])[['incidence']].agg(np.nansum).reset_index()
     target=rcases[rcases['age']==agebin]
     target=target['incidence'].mean()
     
     ### Load analyzed monthly MalariaSummaryReport from simulation
-    sim_cases = pd.read_csv(os.path.join(manifest.simulation_output_filepath,site,"ClinicalIncidence_monthly.csv"))
+    sim_cases = pd.read_csv(Path(os.path.join(manifest.simulation_output_filepath,site,"ClinicalIncidence_monthly.csv")))
     # filter to age
     sim_cases = sim_cases[sim_cases['agebin']==agebin]
     sim_cases['Inc'] = sim_cases['Cases'] #/ sim_cases['Pop']
@@ -251,9 +253,17 @@ def compute_all_scores(site,incidence_agebin=100,prevalence_agebin=5, prevalence
             scores = scores.merge(score4[['Sample_ID','prevalence_U2_score']], how='outer', on='Sample_ID')
     return scores
 
+
 if __name__ == '__main__':
-  site="Aiyedade"
+
+  coord_df = pd.read_csv(manifest.simulation_coordinator_path)
+  site = coord_df.at['site', 'value']
+  print(site)
+  
   print(compare_incidence_shape(site,agebin=100))
 #   print(compare_annual_incidence(site,agebin=100))
   print(compare_all_age_PCR_prevalence(site))
   print(check_EIR_threshold(site))
+  
+  
+  
