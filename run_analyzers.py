@@ -3,22 +3,23 @@
 import sys
 import os
 import argparse
+from pathlib import Path
 from idmtools.core.platform_factory import Platform
 # from within environment_calibration_common submodule
-sys.path.append("/home/upf3610/b1139/ipti_pmc/environment_calibration/environment_calibration_common")
+sys.path.append("/gpfs/projects/b1139/ipti_pmc/_mrm9534/environment_calibration/environment_calibration_common/")
 from helpers import get_comps_id_filename, load_coordinator_df
 
 # from .helpers import get_comps_id_filename, load_coordinator_df
 # from helpers import get_comps_id_filename, load_coordinator_df
 
-sys.path.append("/home/upf3610/b1139/ipti_pmc/environment_calibration/environment_calibration_common")
+sys.path.append("/gpfs/projects/b1139/ipti_pmc/_mrm9534/environment_calibration/environment_calibration_common/")
 from analyzers.analyze import analyze_experiment
 
 # from analyzers.analyze import analyze_experiment
 # from source 'simulations' directory
 
 # sys.path.append("../simulations")
-sys.path.append("/home/upf3610/b1139/ipti_pmc/environment_calibration/simulations")
+sys.path.append("/gpfs/projects/b1139/ipti_pmc/_mrm9534/environment_calibration/simulations")
 import manifest as manifest
 
 def run_analyzers(site: str, expid: str = None, characteristic: bool = False) -> (bool, str):
@@ -39,16 +40,17 @@ def run_analyzers(site: str, expid: str = None, characteristic: bool = False) ->
         exp_id = expid
     else:
         with open(comps_id_file, 'r') as id_file:
-            exp_id = id_file.readline()
+            exp_id = id_file.readline().strip()
     # Wait for experiment to be done
     a_ok=True
+    print(f"Exp ID used: '{exp_id}'")
     if a_ok:#check_experiment(site, platform): #checks if succeeded, removed for now to allow for partial analysis
         coord_df = load_coordinator_df(characteristic = characteristic, set_index = True)
         # for expt_name, id in exp_name_id.items():
         # site = expt_name.replace('validation_', '')
         # determine the analyzers to run for each site
         wdir=manifest.simulation_output_filepath
-        wdir=os.path.join(wdir,site)
+        wdir=Path(os.path.join(wdir,site))
 
         if not os.path.exists(wdir):
             os.makedirs(wdir)

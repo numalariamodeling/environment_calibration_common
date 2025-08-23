@@ -20,7 +20,7 @@ def set_config( config, tmp_loc = [], rate= 1.0, infectivity = 1.0 ):
     config.parameters.Enable_Demographics_Risk = 1
     config.parameters.Enable_Maternal_Infection_Transmission = 0
     config.parameters.Enable_Natural_Mortality = 1
-
+    config.parameters.Enable_Vector_Migration = 0
     config.parameters.Maternal_Antibodies_Type = "CONSTANT_INITIAL_IMMUNITY"
 
     return config

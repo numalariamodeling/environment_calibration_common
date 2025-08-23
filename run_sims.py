@@ -3,6 +3,7 @@
 import argparse
 import numpy as np
 import os
+from pathlib import Path
 from functools import \
     partial 
 from idmtools.builders import SimulationBuilder
@@ -105,7 +106,7 @@ def _create_task(my_manifest,site):
 
     task.config.parameters.Birth_Rate_Dependence = "FIXED_BIRTH_RATE"
     task.common_assets.add_directory(
-        os.path.join(manifest.input_files_path, 'site_climate', site), relative_path="climate"
+       Path(os.path.join(manifest.input_files_path, 'site_climate', site)), relative_path="climate"
     )
     add_outputs(task,site)
     return task
@@ -130,6 +131,6 @@ if __name__ == "__main__":
                         help='Comps priority', default=manifest.priority)
     parser.add_argument('--calib_params', '-X', type=str, help='calib parameter set')
     args = parser.parse_args()
-    generate_demographics()  # Use pre-generated demographics
+    generate_demographics(site=args.site)
     submit_sim(site=args.site, nSims=args.nSims, characteristic=args.characteristic, priority=args.priority,
                not_use_singularity=args.not_use_singularity, X=args.calib_params)
