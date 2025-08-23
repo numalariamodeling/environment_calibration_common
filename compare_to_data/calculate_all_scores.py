@@ -214,7 +214,7 @@ def compare_annual_incidence(site,agebin):
     # Reference data
     rcases = load_case_data(site)
     rcases = rcases[rcases['site']==site]
-    rcases['incidence']=rcases['case'] / site_df['population']      # assuming population of 10,0000
+    rcases['incidence']=rcases['case'] / site_df['population']     
     rcases = rcases.groupby(['age','year'])[['incidence']].agg(np.nansum).reset_index()
     target=rcases[rcases['age']==agebin]
     target=target['incidence'].mean()
