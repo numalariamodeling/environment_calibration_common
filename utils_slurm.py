@@ -3,6 +3,7 @@
 import copy
 import os
 import sys
+from pathlib import Path
 from typing import List, Dict
 import subprocess
 import re
@@ -133,7 +134,7 @@ def shell_header_quest(A='b1139', p='b1139', t='02:00:00', N=1,
              f'#SBATCH -N {N}\n' \
              f'#SBATCH --ntasks-per-node={ntasks_per_node}\n' \
              f'#SBATCH --mem={mem}\n' \
-             f'#SBATCH --job-name="{job_name}"\n'\
+             f'#SBATCH --job-name="{job_name.replace(" ","_")}"\n'\
              f'#SBATCH -c {c}\n'
     if node_spec is not None:
         constraint = f'#SBATCH --constraint={node_spec}\n'
@@ -143,8 +144,8 @@ def shell_header_quest(A='b1139', p='b1139', t='02:00:00', N=1,
         out = '#SBATCH --output=log/slurm_%A_%a.out\n'
         header = header + array + err + out #+ constraint
     else:
-        err = f'#SBATCH --error=log/{job_name}.%j.err\n'
-        out = f'#SBATCH --output=log/{job_name}.%j.out\n'
+        err = f'#SBATCH --error=log/{job_name.replace(" ","_")}.%j.err\n'
+        out = f'#SBATCH --output=log/{job_name.replace(" ","_")}.%j.out\n'
         header = header + err + out #+ constraint
     return header
         
@@ -155,7 +156,7 @@ def submit_scheduled_analyzer(experiment, platform, site, analyzer_script, mem=2
     header_post = shell_header_quest(job_name=f'analyze_exp', t='06:00:00', mem=mem, c='8')
     pymodule = '\n\nmodule purge all' \
     ### pycommand(s) - additional python or R scripts to directly run after analyzer can be added below
-    pycommand = f'\n{manifest.VENV_PATH}/bin/python {analyzer_script} --site {site} --expid {experiment.id}' 
+    pycommand = f'\n{manifest.VENV_PATH}/bin/python {analyzer_script} --site "{site}" --expid {experiment.id}' 
     
     # if not os.path.exists('analyzers/batch'):
     #     os.makedirs(os.path.join('analyzers/batch'))    
@@ -169,15 +170,15 @@ def submit_scheduled_analyzer(experiment, platform, site, analyzer_script, mem=2
     batchcommand = f'\ncd {wdir}' \
                    f'\nsbatch {batchscript}'
                    ##os.path.join(wdir,"analyzers","batch"
-    file = open(os.path.join(wdir,f'wait_analyzer_{experiment.uid}.sh'), 'w') #,'analyzers','batch'
+    file = open(Path(os.path.join(wdir,f'wait_analyzer_{experiment.uid}.sh')), 'w') #,'analyzers','batch'
     file.write(header_post_wait + pymodule + batchcommand)
     file.close()
     
     job_id = platform._op_client.get_job_id(experiment.id, experiment.item_type)
     job_id = job_id[0]
-    script_path = os.path.join(wdir,f'wait_analyzer_{experiment.uid}.sh') #,'analyzers','batch' # save under different names, will require cleanup
+    script_path =Path(os.path.join(wdir,f'wait_analyzer_{experiment.uid}.sh')) #,'analyzers','batch' # save under different names, will require cleanup
     print(script_path)
-    result = subprocess.run([f'sbatch --dependency=afterok:{job_id} {script_path}'], shell=True, stdout=subprocess.PIPE)
+    result = subprocess.run([f'sbatch --dependency=afterok:{job_id} "{script_path}"'], shell=True, stdout=subprocess.PIPE)
     print(result,flush=True)
     result = result.stdout.decode('utf-8').strip()
     print(result,flush=True)
@@ -199,4 +200,4 @@ def submit_scheduled_analyzer(experiment, platform, site, analyzer_script, mem=2
     print(f"Analyzer job id: {job_id_analyzer}")
     
     #return (job_id_analyzer)  # if needed to add another dependency slurm submission
-    return () 
+    return ()

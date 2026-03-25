@@ -10,6 +10,7 @@ import pandas as pd
 import warnings
 import sys
 import math
+from pathlib import Path
 import numpy as np
 from datetime import datetime
 from functools import partial
@@ -103,6 +104,8 @@ def update_sim_random_seed(simulation, value):
     return {"Run_Number": value}
 
 
+
+
 def add_outputs(task, site):
     """
     Requesting reports/outputs to the task.
@@ -118,9 +121,10 @@ def add_outputs(task, site):
     ### Incidence-related reports ###     
     if(coord_df.at['incidence_comparison','value']):
         incidence_df = pd.read_csv(os.path.join(manifest.base_reference_filepath,coord_df.at['incidence_comparison_reference','value']))
+        incidence_df = incidence_df[incidence_df["site"] == coord_df.at["site", "value"]]
         incidence_agebins = sorted([float(a) for a in incidence_df['age'].unique()])
         first_year = int(incidence_df['year'].min()) - sim_start_year
-        last_year = int(incidence_df['year'].max()) - sim_start_year + 1
+        last_year = int(incidence_df['year'].max()) - sim_start_year + 2
         
         # Logical bounds on years to request
         if first_year < 0:
@@ -146,41 +150,100 @@ def add_outputs(task, site):
                                        pretty_format=True,
                                        filename_suffix=f"Yearly_incidence_{first_year+sim_start_year}_to_{last_year+sim_start_year}")
     ### Prevalence-related reports ### 
+    # if(coord_df.at['prevalence_comparison','value']):
+    #     if(coord_df.at['prevalence_comparison_diagnostic','value']!="PCR"):
+    #         prevalence_df = pd.read_csv(os.path.join(manifest.base_reference_filepath,
+    #                                                 coord_df.at['prevalence_comparison_reference','value']))
+    #         prevalence_agebins =  sorted([float(a) for a in prevalence_df['age'].unique()])
+    #         first_year = int(prevalence_df['year'].min()) - sim_start_year
+    #         last_year = int(prevalence_df['year'].max()) - sim_start_year
+            
+    #         # Logical bounds on years to request
+    #         if first_year < 0:
+    #             first_year=0
+    #         if last_year > simulation_years:
+    #             last_year=simulation_years
+    #         print(first_year)
+    #         print(last_year)
+    #         print(simulation_years)    
+    #         if(coord_df.at['prevalence_comparison_frequency','value']=='monthly'):
+    #             for year in range(first_year, last_year):
+    #                 start_day = 0 + 365 * year
+    #                 sim_year = sim_start_year + year
+    #                 add_malaria_summary_report(task,manifest,
+    #                                         start_day=start_day,end_day=365 + year * 365,
+    #                                         reporting_interval=30,age_bins=prevalence_agebins,
+    #                                         max_number_reports=13,pretty_format=True,
+    #                                         filename_suffix=f"Monthly_prevalence_{sim_year}")
+                                            
+    #         if(coord_df.at['prevalence_comparison_frequency','value']=='annual'):
+    #             add_malaria_summary_report(task,manifest,
+    #                                     start_day=first_year*365,end_day=last_year*365,
+    #                                     reporting_interval=365,age_bins=prevalence_agebins,
+    #                                     max_number_reports=last_year-first_year+1,
+    #                                     pretty_format=True,
+    #                                     filename_suffix=f"Yearly_prevalence_{first_year+sim_start_year}_to_{last_year+sim_start_year}")
+        
     if(coord_df.at['prevalence_comparison','value']):
         if(coord_df.at['prevalence_comparison_diagnostic','value']!="PCR"):
-            prevalence_df = pd.read_csv(os.path.join(manifest.base_reference_filepath,
-                                                    coord_df.at['prevalence_comparison_reference','value']))
-            prevalence_agebins =  sorted([float(a) for a in prevalence_df['age'].unique()])
-            first_year = int(prevalence_df['year'].min()) - sim_start_year
-            last_year = int(prevalence_df['year'].max()) - sim_start_year + 1
-            
+            prevalence_df_U5 = pd.read_csv(os.path.join(manifest.base_reference_filepath,
+                                                     coord_df.at['prevalence_comparison_reference','value']))
+
+            prevalence_df_U5 = prevalence_df_U5[prevalence_df_U5["site"] == coord_df.at["site", "value"]]
+
+            prevalence_df_U2 = pd.read_csv(os.path.join(manifest.base_reference_filepath,
+                                                     coord_df.at['prevalence_comparison_reference_U2','value']))
+
+            prevalence_df_U2 = prevalence_df_U2[prevalence_df_U2["site"] == coord_df.at["site", "value"]]
+
+            prevalence_agebins_U5 = sorted([float(a) for a in prevalence_df_U5['age'].unique()])
+            prevalence_agebins_U2 = sorted([float(a) for a in prevalence_df_U2['age'].unique()])
+    
+
+            first_year_U5 = int(prevalence_df_U5['year'].min()) - sim_start_year
+            last_year_U5 = int(prevalence_df_U5['year'].max()) - sim_start_year
+
+            first_year_U2 = int(prevalence_df_U2['year'].min()) - sim_start_year
+            last_year_U2 = int(prevalence_df_U2['year'].max()) - sim_start_year
+
             # Logical bounds on years to request
-            if first_year < 0:
-                first_year=0
-            if last_year > simulation_years:
-                last_year=simulation_years
-                
+            first_year = max(first_year, 0)
+            last_year = min(last_year, simulation_years)
+
+            first_year_U5 = max(first_year_U5, 0)
+            last_year_U5 = min(last_year_U5, simulation_years)
+            
+            first_year_U2 = max(first_year_U2, 0)
+            last_year_U2 = min(last_year_U2, simulation_years)
+
             if(coord_df.at['prevalence_comparison_frequency','value']=='monthly'):
-                for year in range(first_year, last_year):
+                for year in range(first_year_U5, last_year_U5+3):
                     start_day = 0 + 365 * year
                     sim_year = sim_start_year + year
-                    add_malaria_summary_report(task,manifest,
-                                               start_day=start_day,end_day=365 + year * 365,
-                                               reporting_interval=30,age_bins=prevalence_agebins,
-                                               max_number_reports=13,pretty_format=True,
-                                               filename_suffix=f"Monthly_prevalence_{sim_year}")
-                                               
+                    add_malaria_summary_report(task, manifest,
+                                                start_day=start_day, end_day=365 + year * 365,
+                                                reporting_interval=30, age_bins=prevalence_agebins_U5,
+                                                max_number_reports=13, pretty_format=True,
+                                                filename_suffix=f"Monthly_prevalence_U5_{sim_year}")
+
+                for year in range(first_year_U2, last_year_U2+1):
+                    start_day = 0 + 365 * year
+                    sim_year = sim_start_year + year
+                    add_malaria_summary_report(task, manifest,
+                                                start_day=start_day, end_day=365 + year * 365,
+                                                reporting_interval=30, age_bins=prevalence_agebins_U2,
+                                                max_number_reports=13, pretty_format=True,
+                                                filename_suffix=f"Monthly_prevalence_U2_{sim_year}")
+
             if(coord_df.at['prevalence_comparison_frequency','value']=='annual'):
-                add_malaria_summary_report(task,manifest,
-                                           start_day=first_year*365,end_day=last_year*365,
-                                           reporting_interval=365,age_bins=prevalence_agebins,
-                                           max_number_reports=last_year-first_year+1,
-                                           pretty_format=True,
-                                           filename_suffix=f"Yearly_prevalence_{first_year+sim_start_year}_to_{last_year+sim_start_year}")
-        
+                add_malaria_summary_report(task, manifest,
+                                            start_day=first_year*365, end_day=last_year*365,
+                                            reporting_interval=365, age_bins=prevalence_agebins_U5,
+                                            max_number_reports=last_year-first_year+1,
+                                            pretty_format=True,
+                                            filename_suffix=f"Yearly_prevalence_{first_year+sim_start_year}_to_{last_year+sim_start_year}")
     return
   
-
 def build_camp(site, coord_df=None):
     """
     Build a campaign input file for the DTK using emod_api.
@@ -195,8 +258,8 @@ def build_camp(site, coord_df=None):
     # === INTERVENTIONS === #
 
     # health-seeking
-    if (not pd.isna(coord_df.at['CM_filepath','value'])) and (not (coord_df.at['CM_filepath','value'] == '')):
-        hs_df = pd.read_csv(manifest.input_files_path / coord_df.at['CM_filepath','value'])
+    if (not pd.isna(coord_df.at['CM_filepath','value'])) and (coord_df.at['CM_filepath','value'] != ''):
+        hs_df = pd.read_csv(manifest.input_files_path / Path(coord_df.at['CM_filepath','value']))
     else:
         hs_df = pd.DataFrame()
   
@@ -205,17 +268,18 @@ def build_camp(site, coord_df=None):
         add_health_seeking(camp,hs_df)
     
     # NMFs
-    if (not pd.isna(coord_df.at['NMF_filepath','value'])) and (not (coord_df.at['NMF_filepath','value'] == '')):
-        nmf_df = pd.read_csv(manifest.input_files_path / coord_df.at['NMF_filepath','value'])
+    if (not pd.isna(coord_df.at['NMF_filepath','value'])) and (coord_df.at['NMF_filepath','value'] != ''):
+        nmf_df = pd.read_csv(manifest.input_files_path / Path(coord_df.at['NMF_filepath','value']))
     else:
         nmf_df = pd.DataFrame()
-    if (not pd.isna(coord_df.at['NMF_filepath','value'])) and (not (coord_df.at['NMF_filepath','value'] == '')):
+    
+    if (not pd.isna(coord_df.at['NMF_filepath','value'])) and (coord_df.at['NMF_filepath','value'] != ''):
         if not hs_df.empty:
             add_nmf_hs(camp, hs_df, nmf_df)
     
     # SMC
-    if (not pd.isna(coord_df.at['SMC_filepath','value'])) and (not (coord_df.at['SMC_filepath','value'] == '')):
-        smc_df = pd.read_csv(manifest.input_files_path / coord_df.at['SMC_filepath','value'])
+    if (not pd.isna(coord_df.at['SMC_filepath','value'])) and (coord_df.at['SMC_filepath','value'] != ''):
+        smc_df = pd.read_csv(manifest.input_files_path / Path(coord_df.at['SMC_filepath','value']))
     else:
         smc_df = pd.DataFrame()
     if not smc_df.empty:
@@ -223,13 +287,13 @@ def build_camp(site, coord_df=None):
 
     # ITNS
     itn_df = pd.DataFrame()
-    if (not pd.isna(coord_df.at['ITN_filepath','value'])) and (not (coord_df.at['ITN_filepath','value'] == '')):
-        if (not pd.isna(coord_df.at['ITN_age_filepath','value'])) and (not (coord_df.at['ITN_age_filepath','value'] == '')):
-            if(not pd.isna(coord_df.at['ITN_season_filepath','value'])) and (not (coord_df.at['ITN_season_filepath','value'] == '')):
-                itn_df = pd.read_csv(manifest.input_files_path / coord_df.at['ITN_filepath','value'])
-                itn_age = pd.read_csv(manifest.input_files_path / coord_df.at['ITN_age_filepath','value'])
-                itn_season = pd.read_csv(manifest.input_files_path / coord_df.at['ITN_season_filepath','value'])
-        
+    if (not pd.isna(coord_df.at['ITN_filepath','value'])) and (coord_df.at['ITN_filepath','value'] != ''):
+        if (not pd.isna(coord_df.at['ITN_age_filepath','value'])) and (coord_df.at['ITN_age_filepath','value'] != ''):
+            if (not pd.isna(coord_df.at['ITN_season_filepath','value'])) and (coord_df.at['ITN_season_filepath','value'] != ''):
+                itn_df = pd.read_csv(manifest.input_files_path / Path(coord_df.at['ITN_filepath','value']))
+                itn_age = pd.read_csv(manifest.input_files_path / Path(coord_df.at['ITN_age_filepath','value']))
+                itn_season = pd.read_csv(manifest.input_files_path / Path(coord_df.at['ITN_season_filepath','value']))
+    
     if not itn_df.empty:
         # Distribute ITNs with age- and season-based usage patterns
         add_itns(camp,itn_df,itn_age,itn_season)
@@ -256,7 +320,7 @@ def set_simulation_scenario(simulation, site, csv_path):
     demographics_filename = str(coord_df.at['demographics_filepath','value'])
     #print(demographics_filename)
     if demographics_filename and demographics_filename != 'nan':
-        simulation.task.transient_assets.add_asset(manifest.input_files_path / demographics_filename)
+        simulation.task.transient_assets.add_asset(manifest.input_files_path / Path(demographics_filename))
         simulation.task.config.parameters.Demographics_Filenames = [demographics_filename.rsplit('/',1)[-1]]
     simulation.task.config.parameters.Age_Initialization_Distribution_Type = 'DISTRIBUTION_COMPLEX'
 
@@ -568,7 +632,8 @@ def get_comps_id_filename(site: str, level: int = 0):
         file_name = folder_name / (site + '_analyzers')
     else:
         file_name = folder_name / (site + '_download')
-    return file_name.relative_to(manifest.CURRENT_DIR).as_posix()
+    return file_name.as_posix()
+    # return file_name.relative_to(manifest.PROJECT_DIR).as_posix()
 
 
 def load_coordinator_df(characteristic=False, set_index=True):
@@ -612,9 +677,10 @@ def generate_demographics():
                                                      CrudeRate(float(BR)))
     print("Amending Birth Rate")
     demog.SetBirthRate(CrudeRate(float(BR) * int(population)))
-    with open(f"../simulation_inputs/demographics_files/{site}_demographics.json", "w") as outfile:
+    fname = Path(f"{manifest.input_files_path}/demographics_files/{site}_demographics.json")
+    with open(fname, "w") as outfile:
         json.dump(demog.to_dict(), outfile, indent=3, sort_keys=True)
-    print(f"Saved to ../simulation_inputs/demographics_files/{site}_demographics.json")
+        print(f"Saved to {fname}")
     return demog
   
 
@@ -629,19 +695,19 @@ def extract_climate(flatten_temp=True):
     site = coord_df.at['site','value']
     start_yr = int(coord_df.at['climate_start_year','value'])
     length = int(coord_df.at['climate_year_dur','value'])
-    extractdir = '../simulation_inputs/tmp/'
-    outdir = os.path.join('../simulation_inputs/site_climate', site)
+    extractdir = f'{manifest.input_files_path}/tmp/'
+    outdir = Path(os.path.join(f'{manifest.input_files_path}/site_climate', site))
     if not os.path.exists(extractdir):
         os.makedirs(extractdir)
     site_climate=coord_df.transpose().reset_index()
     site_climate = site_climate[['lon','lat','nodes']]
     #print(site_climate)
-    site_climate.to_csv(f"{manifest.simulation_input_filepath}/{site}_climate.csv")
+    site_climate.to_csv(Path(f"{manifest.simulation_input_filepath}/{site}_climate.csv"))
     weather_dir = extractdir
     startdate = start_yr * 1000 + 1
     enddate = (start_yr + length - 1) * 1000 + 365
     wr = generate_weather(platform="Calculon",
-                          site_file=f"{manifest.simulation_input_filepath}/{site}_climate.csv",
+                          site_file=Path(f"{manifest.simulation_input_filepath}/{site}_climate.csv"),
                           start_date=startdate,
                           end_date=enddate,
                           node_column="nodes",

@@ -1,0 +1,4 @@
+__pycache__/
+*.pyc
+*.log
+compare_to_data/int_testing.ipynb

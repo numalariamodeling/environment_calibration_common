@@ -6,6 +6,7 @@ import sys
 from idmtools.analysis.analyze_manager import AnalyzeManager
 from idmtools.core import ItemType
 import pandas as pd
+from pathlib import Path
 # from within analyzers/
 sys.path.append(os.path.dirname(__file__))
 from .analyzer_collection import (
@@ -54,30 +55,64 @@ def analyze_experiment(platform, expid, wdir):
                                                 end_day = sim_years*365,
                                                 channels=["Daily EIR"]))
     if coord_df.at['prevalence_comparison','value']:
-        prevalence_df = pd.read_csv(os.path.join(manifest.base_reference_filepath,
+        prevalence_df_U5 = pd.read_csv(os.path.join(manifest.base_reference_filepath,
                                                     coord_df.at['prevalence_comparison_reference','value']))
+
+        prevalence_df_U2 = pd.read_csv(os.path.join(manifest.base_reference_filepath,
+                                                     coord_df.at['prevalence_comparison_reference_U2','value']))
+
         if(coord_df.at['prevalence_comparison_diagnostic','value']=="PCR"):
-            prevalence_start = int(prevalence_df['year'].min()) - sim_start_year
-            prevalence_end = int(prevalence_df['year'].max()) - sim_start_year
+            prevalence_start_u5 = int(prevalence_df_U5['year'].min()) - sim_start_year
+            prevalence_end_u5 = int(prevalence_df_U5['year'].max()) - sim_start_year
             analyzers.append(PCRAnalyzer(sweep_variables=sweep_variables,
                                                 working_dir=wdir,
-                                                start_day=prevalence_start*365,
-                                                end_day = 365+prevalence_end*365,
+                                                start_day=prevalence_start_u5*365,
+                                                end_day = 365+prevalence_end_u5*365,
                                                 channels=["PCR Parasite Prevalence"]))
+        
         if coord_df.at['prevalence_comparison_diagnostic','value']=="Microscopy":
-            prevalence_start = int(prevalence_df['year'].min())
-            prevalence_end = int(prevalence_df['year'].max())
+            prevalence_start_u5 = int(prevalence_df_U5['year'].min())
+            prevalence_end_u5 = int(prevalence_df_U5['year'].max())
             if coord_df.at['prevalence_comparison_frequency','value']=="monthly":
-                print(f"Prevalence: {prevalence_start} to {prevalence_end}")
+                print(f"Prevalence: {prevalence_start_u5} to {prevalence_end_u5}")
                 analyzers.append(MonthlyPfPRAnalyzer(sweep_variables=sweep_variables,
                                                      working_dir=wdir,
-                                                     start_year=prevalence_start,
-                                                     end_year=prevalence_end))
+                                                     start_year=prevalence_start_u5,
+                                                     end_year= prevalence_end_u5,
+                                                     grp = 'U5'))
+                                                     
+            prevalence_start_u2 = int(prevalence_df_U2['year'].min())
+            prevalence_end_u2 = int(prevalence_df_U2['year'].max()+1)
+            if coord_df.at['prevalence_comparison_frequency','value']=="monthly":
+                print(f"Prevalence: {prevalence_start_u2} to {prevalence_end_u2}")
+                analyzers.append(MonthlyPfPRAnalyzer(sweep_variables=sweep_variables,
+                                                     working_dir=wdir,
+                                                     start_year=prevalence_start_u2,
+                                                     end_year=prevalence_end_u2,
+                                                     grp = 'U2'))
+
+        if(coord_df.at['prevalence_comparison_diagnostic','value']=="PCR"):
+            prevalence_start_u2 = int(prevalence_df_U2['year'].min()) - sim_start_year
+            prevalence_end_u2 = int(prevalence_df_U2['year'].max()) - sim_start_year
+            analyzers.append(PCRAnalyzer(sweep_variables=sweep_variables,
+                                                working_dir=wdir,
+                                                start_day=prevalence_start_u2*365,
+                                                end_day = 365+prevalence_end_u2*365,
+                                                channels=["PCR Parasite Prevalence"]))
+        
+        if coord_df.at['prevalence_comparison_diagnostic','value']=="Microscopy":
+
             if coord_df.at['prevalence_comparison_frequency','value']=="annual":
                 analyzers.append(AnnualPfPRAnalyzer(sweep_variables=sweep_variables,
                                                     working_dir=wdir,
-                                                    start_year=prevalence_start,
-                                                    end_year=prevalence_end))
+                                                    start_year=prevalence_start_u5,
+                                                    end_year=prevalence_end_u5))
+
+            if coord_df.at['prevalence_comparison_frequency','value']=="annual":
+                analyzers.append(AnnualPfPRAnalyzer(sweep_variables=sweep_variables,
+                                                    working_dir=wdir,
+                                                    start_year=prevalence_start_u2,
+                                                    end_year=prevalence_end_u2))
     # Don't change these - used for fitting #
     if coord_df.at['incidence_comparison','value']:
         incidence_df = pd.read_csv(os.path.join(manifest.base_reference_filepath,
@@ -125,4 +160,4 @@ if __name__ == "__main__":
     outdir = args.site
     analyze_experiment(platform, 
                        args.expid,
-                       os.path.join(manifest.output_dir, outdir))
+                      Path( os.path.join(manifest.output_dir, outdir)))

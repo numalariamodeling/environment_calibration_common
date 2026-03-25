@@ -1,6 +1,7 @@
 ##### Import required packages #####
 # standard packages
 import sys
+from pathlib import Path
 import numpy as np
 import warnings
 import pandas as pd
@@ -18,22 +19,45 @@ sns.set_context("talk")
 sns.set_style("white")
 # from within compare_to_data
 sys.path.append(os.path.dirname(__file__))
-from calculate_all_scores import  compute_all_scores, load_case_data, load_prevalence_data
+from calculate_all_scores import  compute_all_scores, load_case_data, load_prevalence_data, load_prevalence_data_U2
 # from .within environment_calibration_common submodule
 sys.path.append('../')
 from helpers import load_coordinator_df
 # from source 'simulations' directory
+
 sys.path.append("../../simulations")
 import manifest as manifest
 
 
-def compute_scores_across_site(site):
+# def load_coordinator_df(characteristic=False, set_index=True):
+#     csv_file = manifest.sweep_sim_coordinator_path if characteristic else manifest.simulation_coordinator_path
+#     coord_df = pd.read_csv(csv_file)
+#     if set_index:
+#         coord_df = coord_df.set_index('option')
+#     return coord_df
+    
+# def load_prevalence_data(site):
+#     ### Load reference PCR prevalence data
+#     refprev = pd.read_csv(os.path.join(manifest.base_reference_filepath,
+#                                       coord_df.at['prevalence_comparison_reference','value']))
+#     refprev = refprev[refprev['site']==site]
+#     return(refprev)  
+
+# def load_prevalence_data_u2(site):
+#     ### Load reference PCR prevalence data
+#     refprev = pd.read_csv(os.path.join(manifest.base_reference_filepath,
+#                                       coord_df.at['prevalence_comparison_reference_U2','value']))
+#     refprev = refprev[refprev['site']==site]
+#     return(refprev)
+
+def compute_scores_across_site(site, incidence_agebin, prevalence_agebin, prevalence_agebin_U2):
     # Compute all scores
     coord_df = load_coordinator_df()
     incidence_agebin=float(coord_df.at['incidence_comparison_agebin','value'])
     prevalence_agebin=float(coord_df.at['prevalence_comparison_agebin','value'])
-    scores = compute_all_scores(site,incidence_agebin=incidence_agebin,prevalence_agebin=prevalence_agebin)
-    # Load weighting rules
+    prevalence_agebin_U2=float(coord_df.at['prevalence_comparison_agebin_U2','value'])
+    scores = compute_all_scores(site,incidence_agebin=incidence_agebin,prevalence_agebin=prevalence_agebin, prevalence_agebin_U2 = prevalence_agebin_U2)
+    # scores = compute_all_scores(site,incidence_agebin=incidence_agebin,prevalence_agebin=prevalence_agebin)
     weights = pd.read_csv(os.path.join(manifest.input_files_path,"weights.csv"),index_col=0)
     
     ### Assume EIR Score is included ###
@@ -44,13 +68,17 @@ def compute_scores_across_site(site):
     if(coord_df.at['incidence_comparison','value']):
         scores['shape_score'] = [float(weights.at['shape_score','weight'])*val for val in scores['shape_score']]
         scores['shape_score'] = scores['shape_score'].fillna(10)
-        scores['intensity_score'] = [float(weights.at['intensity_score','weight'])*val for val in scores['intensity_score']]
-        scores['intensity_score'] = scores['intensity_score'].fillna(10)
+        # scores['intensity_score'] = [float(weights.at['intensity_score','weight'])*val for val in scores['intensity_score']]
+        # scores['intensity_score'] = scores['intensity_score'].fillna(10)
     
     ### Add prevalence score ###
     if(coord_df.at['prevalence_comparison','value']):
         scores['prevalence_score'] = [float(weights.at['prevalence_score','weight'])*val for val in scores['prevalence_score']]
         scores['prevalence_score'] = scores['prevalence_score'].fillna(10)
+
+    ### Add prevalence score U2 ###
+        scores['prevalence_U2_score'] = [float(weights.at['prevalence_U2_score','weight'])*val for val in scores['prevalence_U2_score']]
+        scores['prevalence_U2_score'] = scores['prevalence_U2_score'].fillna(10)
 
     scores = scores.rename(columns={"Sample_ID":"param_set"})
     
@@ -58,7 +86,7 @@ def compute_scores_across_site(site):
     
     return scores
 
-def plot_incidence(site="",plt_dir=os.path.join(manifest.simulation_output_filepath,"_plots"),wdir='.',agebin=5):
+def plot_incidence(site="",plt_dir=os.path.join(manifest.simulation_output_filepath,"_plots"),wdir='.',agebin=100):
     
     coord_df = load_coordinator_df()
     start_year = coord_df.at['simulation_start_year','value']
@@ -83,7 +111,7 @@ def plot_incidence(site="",plt_dir=os.path.join(manifest.simulation_output_filep
     rcases = case_df.groupby(['month','site'])['norm_repincd'].agg(np.nanmean).reset_index()
     
     ## Read in simulation output file
-    sim_cases = pd.read_csv(os.path.join(manifest.simulation_output_filepath,site,"ClinicalIncidence_monthly.csv"))
+    sim_cases = pd.read_csv(Path(os.path.join(manifest.simulation_output_filepath,site,"ClinicalIncidence_monthly.csv")))
     # filter to age of interest
     sim_cases = sim_cases[sim_cases['agebin']==agebin]
     # filter to best param_set
@@ -113,69 +141,278 @@ def plot_incidence(site="",plt_dir=os.path.join(manifest.simulation_output_filep
     plt.ylim(0, 1.1)
     plt.xlim()
     plt.show()
-    plt.savefig(os.path.join(plt_dir,f"incidence_{site}.png"))
+    plt.savefig(Path(os.path.join(plt_dir,f"incidence_{site}.png")))
     plt.clf()
     
     
 
-def plot_pfpr_microscopy(site="",plt_dir=os.path.join(manifest.simulation_output_filepath,"_plots"),wdir='.',agebin=100):
+# def plot_pfpr_microscopy(site="",plt_dir=os.path.join(manifest.simulation_output_filepath,"_plots"),wdir='.',agebin=100):
     
+#     coord_df = load_coordinator_df()
+#     start_year = int(coord_df.at['simulation_start_year','value'])
+    
+#    # load reference data
+#     refpfpr = load_prevalence_data(site)
+#     refpfpr = refpfpr[refpfpr['age'] == agebin]
+#     # convert reference_pcr 'year' to start at 0, like simulations
+#     refpfpr['year'] = [int(y) for y in refpfpr['year']]
+#     refpfpr['date'] = refpfpr['month'].map(str)+ '-' +refpfpr['year'].map(str)
+#     refpfpr['date'] = pd.to_datetime(refpfpr['date'], format='%m-%Y').dt.strftime('%m-%Y')
+#     refpfpr=refpfpr.sort_values(['year','month'])
+
+
+
+#     sim_pfpr = pd.read_csv(os.path.join(manifest.simulation_output_filepath,site,"PfPR_monthly.csv"))
+#     # filter to age of interest
+#     sim_pfpr = sim_pfpr[sim_pfpr['agebin']==agebin]
+#     # get mean PfPR by month, year, and Sample_ID across runs
+#     sim_pfpr = sim_pfpr.groupby(['Sample_ID', 'month','Year'])['PfPR'].agg(np.nanmean).reset_index()
+#     sim_pfpr = sim_pfpr[['Year','month','Sample_ID','PfPR']]
+
+#     # Get best parameter set
+#     best=1
+#     if os.path.exists(os.path.join(wdir,"emod.best.csv")) :
+#         best = pd.read_csv(os.path.join(wdir,"emod.best.csv"))
+#         best = best['param_set'][0]
+
+#     sim_pfpr_best = sim_pfpr[sim_pfpr['Sample_ID']==best]
+    
+#     sim_pfpr['date'] = sim_pfpr['month'].map(str)+ '-' +sim_pfpr['Year'].map(str)
+#     sim_pfpr['date'] = pd.to_datetime(sim_pfpr['date'], format='%m-%Y').dt.strftime('%m-%Y')
+#     sim_pfpr=sim_pfpr.sort_values(['Year','month'])
+    
+#     sim_pfpr_best = sim_pfpr[sim_pfpr['Sample_ID']==best]
+    
+#     # Plot normalized incidence curve vs. reference data
+#     plt.figure(figsize=(6, 6), dpi=300, tight_layout=True)
+#     #plt.plot(sim_pfpr['date'], sim_pfpr['PfPR'], label="Simulation (All Runs)", alpha=0.3)
+#     plt.plot(sim_pfpr_best['date'], sim_pfpr_best['PfPR'], label="Best Parameter Set", alpha=1.0)
+    
+        
+#     plt.scatter(refpfpr['date'], refpfpr['prevalence'], label="Reference", color='k')
+#     plt.xticks(refpfpr['date'], rotation=45)
+#     plt.legend()
+#     plt.xlabel("Date")
+#     plt.ylabel("PfPR by Microscopy")
+#     plt.ylim(0, 1)
+#     plt.gcf().autofmt_xdate()
+#     plt.show()
+#     plt.savefig(os.path.join(plt_dir,f"prevalence_{site}.png"))
+#     plt.clf() 
+
+
+def plot_pfpr_microscopy(site="", plt_dir=os.path.join(manifest.simulation_output_filepath, "_plots"), wdir='.', agebin=5):
+    wdir = Path(wdir)
     coord_df = load_coordinator_df()
-    start_year = int(coord_df.at['simulation_start_year','value'])
+    start_year = int(coord_df.at['simulation_start_year', 'value'])
     
-   # load reference data
+    # Load reference data
     refpfpr = load_prevalence_data(site)
     refpfpr = refpfpr[refpfpr['age'] == agebin]
-    # convert reference_pcr 'year' to start at 0, like simulations
+    # Convert reference_pcr 'year' to start at 0, like simulations
     refpfpr['year'] = [int(y) for y in refpfpr['year']]
-    refpfpr['date'] = refpfpr['month'].map(str)+ '-' +refpfpr['year'].map(str)
+    refpfpr['date'] = refpfpr['month'].map(str) + '-' + refpfpr['year'].map(str)
     refpfpr['date'] = pd.to_datetime(refpfpr['date'], format='%m-%Y').dt.strftime('%m-%Y')
-    refpfpr=refpfpr.sort_values(['year','month'])
-
-
-
-    sim_pfpr = pd.read_csv(os.path.join(manifest.simulation_output_filepath,site,"PfPR_monthly.csv"))
-    # filter to age of interest
-    sim_pfpr = sim_pfpr[sim_pfpr['agebin']==agebin]
-    # get mean PfPR by month, year, and Sample_ID across runs
-    sim_pfpr = sim_pfpr.groupby(['Sample_ID', 'month','Year'])['PfPR'].agg(np.nanmean).reset_index()
-    sim_pfpr = sim_pfpr[['Year','month','Sample_ID','PfPR']]
+    refpfpr = refpfpr.sort_values(['year', 'month'])
+    
+    # Load simulation data
+    sim_pfpr = pd.read_csv(Path(os.path.join(manifest.simulation_output_filepath, site, "PfPR_monthly_U5.csv")))
+    # Filter to age of interest
+    sim_pfpr = sim_pfpr[sim_pfpr['agebin'] == agebin]
+    # Get mean PfPR by month, year, and Sample_ID across runs
+    sim_pfpr = sim_pfpr.groupby(['Sample_ID', 'month', 'Year'])['PfPR'].agg(np.nanmean).reset_index()
+    sim_pfpr = sim_pfpr[['Year', 'month', 'Sample_ID', 'PfPR']]
 
     # Get best parameter set
-    best=1
-    if os.path.exists(os.path.join(wdir,"emod.best.csv")) :
-        best = pd.read_csv(os.path.join(wdir,"emod.best.csv"))
+    best = 3
+    if os.path.exists(os.path.join(wdir, "emod.best.csv")):
+        best = pd.read_csv(os.path.join(wdir, "emod.best.csv"))
         best = best['param_set'][0]
-
-    sim_pfpr = sim_pfpr[sim_pfpr['Sample_ID']==best]
     
-    sim_pfpr['date'] = sim_pfpr['month'].map(str)+ '-' +sim_pfpr['Year'].map(str)
+    # Create a new 'date' column for simulation data
+    sim_pfpr['date'] = sim_pfpr['month'].map(str) + '-' + sim_pfpr['Year'].map(str)
     sim_pfpr['date'] = pd.to_datetime(sim_pfpr['date'], format='%m-%Y').dt.strftime('%m-%Y')
-    sim_pfpr=sim_pfpr.sort_values(['Year','month'])
-    # Plot normalized incidence curve vs. reference data
+    sim_pfpr = sim_pfpr.sort_values(['Year', 'month'])
+    
+    sim_pfpr_best = sim_pfpr[sim_pfpr['Sample_ID'] == best]
+    
+    # Plot the normalized incidence curve vs. reference data
     plt.figure(figsize=(6, 6), dpi=300, tight_layout=True)
-    plt.plot(sim_pfpr['date'],sim_pfpr['PfPR'], label="Simulation")
+    
+    #Plot simulation data
+    for sample_id in sim_pfpr['Sample_ID'].unique():
+         sample_data = sim_pfpr[sim_pfpr['Sample_ID'] == sample_id]
+         plt.plot(sample_data['date'], sample_data['PfPR'],   alpha=0.3, linewidth=0.5, color='#89CFF0')
+      
+    plt.plot(sim_pfpr_best['date'], sim_pfpr_best['PfPR'], label="All Parameter sets",  alpha=0.8, linewidth=0.5, color='#89CFF0')
+    plt.plot(sim_pfpr_best['date'], sim_pfpr_best['PfPR'], label="Best Parameter Set", alpha=1.0, color='#0000FF')
+    
+    # Plot reference data
     plt.scatter(refpfpr['date'], refpfpr['prevalence'], label="Reference", color='k')
-    plt.xticks(refpfpr['date'], rotation=45)
+    
+    # Format the x-axis ticks
+    plt.xticks(rotation=45)
+    
+    # Add legend and labels
     plt.legend()
     plt.xlabel("Date")
+    plt.xticks(refpfpr['date'], rotation=45)
+    plt.ylabel("PfPR by Microscopy")
+    
+    # Set y-axis limits
+    plt.ylim(0, 1)
+    
+    # Format the x-axis dates
+    plt.gcf().autofmt_xdate()
+    
+    # Save and show the plot
+    plt.savefig(Path(os.path.join(plt_dir, f"prevalence_{site}_U5.png")))
+    plt.show()
+    plt.clf()
+
+
+# def plot_pfpr_microscopy_u2(site="", plt_dir=os.path.join(manifest.simulation_output_filepath, "_plots"), wdir='.', agebin=2):
+    
+#     coord_df = load_coordinator_df()
+#     start_year = int(coord_df.at['simulation_start_year', 'value'])
+    
+#     # Load reference data
+#     refpfpr = load_prevalence_data_U2(site)
+#     refpfpr = refpfpr[refpfpr['age'] == agebin]
+#     # Convert reference_pcr 'year' to start at 0, like simulations
+#     refpfpr['year'] = [int(y) for y in refpfpr['year']]
+#     refpfpr['date'] = refpfpr['month'].map(str) + '-' + refpfpr['year'].map(str)
+#     refpfpr['date'] = pd.to_datetime(refpfpr['date'], format='%m-%Y').dt.strftime('%m-%Y')
+#     refpfpr = refpfpr.sort_values(['year', 'month'])
+    
+#     # Load simulation data
+#     sim_pfpr = pd.read_csv(os.path.join(manifest.simulation_output_filepath, site, "PfPR_monthly_U2.csv"))
+#     # Filter to age of interest
+#     sim_pfpr = sim_pfpr[sim_pfpr['agebin'] == agebin]
+#     # Get mean PfPR by month, year, and Sample_ID across runs
+#     sim_pfpr = sim_pfpr.groupby(['Sample_ID', 'month', 'Year'])['PfPR'].agg(np.nanmean).reset_index()
+#     sim_pfpr = sim_pfpr[['Year', 'month', 'Sample_ID', 'PfPR']]
+
+#     # Get best parameter set
+#     best = 3
+#     if os.path.exists(os.path.join(wdir, "emod.best.csv")):
+#         best = pd.read_csv(os.path.join(wdir, "emod.best.csv"))
+#         best = best['param_set'][0]
+    
+#     # Create a new 'date' column for simulation data
+#     sim_pfpr['date'] = sim_pfpr['month'].map(str) + '-' + sim_pfpr['Year'].map(str)
+#     sim_pfpr['date'] = pd.to_datetime(sim_pfpr['date'], format='%m-%Y').dt.strftime('%m-%Y')
+#     sim_pfpr = sim_pfpr.sort_values(['Year', 'month'])
+    
+#     sim_pfpr_best = sim_pfpr[sim_pfpr['Sample_ID'] == best]
+    
+#     plt.figure(figsize=(6, 6), dpi=300, tight_layout=True)
+
+#     # Plot reference data
+#     # plt.scatter(refpfpr['date'], refpfpr['prevalence'], label="Reference", color='k')
+
+#     #Plot simulation data
+#     for sample_id in sim_pfpr['Sample_ID'].unique():
+#         sample_data = sim_pfpr[sim_pfpr['Sample_ID'] == sample_id]
+#         plt.scatter(sample_data['date'].iloc[6],sample_data['PfPR'].mean(), s=15, color='lightblue')
+
+#     plt.scatter(sim_pfpr_best['date'].iloc[6], sim_pfpr_best['PfPR'].mean(), label="All Parameter sets",  alpha=0.8, color='#89CFF0')
+#     plt.scatter(sim_pfpr_best['date'].iloc[6], sim_pfpr_best['PfPR'].mean(), label="Best Parameter pfpr", color='blue', s=40)
+
+#     # Plot reference data
+#     plt.scatter(refpfpr['date'], refpfpr['prevalence'], label="Reference", color='k')
+#     # Format the x-axis ticks
+#     plt.xticks(rotation=45)
+
+#     # Add legend and labels
+#     plt.legend()
+#     plt.xlabel("Date")
+#     plt.xticks(refpfpr['date'], rotation=45)
+#     plt.ylabel("PfPR by Microscopy")
+
+#     # Set y-axis limits
+#     plt.ylim(0, 1)
+
+#     # Format the x-axis dates
+#     plt.gcf().autofmt_xdate()
+
+#     # Save and show the plot
+#     plt.savefig(os.path.join(plt_dir, f"prevalence_{site}_U2.png"))
+#     plt.show()
+#     plt.clf()
+
+
+def plot_pfpr_microscopy_u2(site="", plt_dir=os.path.join(manifest.simulation_output_filepath, "_plots"), wdir='.', agebin=2):
+    wdir = Path(wdir)
+    # Load coordinator data
+    coord_df = load_coordinator_df()
+    start_year = int(coord_df.at['simulation_start_year', 'value'])
+    
+    # Load reference data
+    refpfpr = load_prevalence_data_U2(site)
+    refpfpr = refpfpr[refpfpr['age'] == agebin]
+    refpfpr['year'] = refpfpr['year'].astype(int)
+    refpfpr['date'] = pd.to_datetime(refpfpr['month'].astype(str) + '-' + refpfpr['year'].astype(str), format='%m-%Y')
+    refpfpr = refpfpr.sort_values(['year', 'month'])
+
+    # Load simulation data
+    sim_pfpr = pd.read_csv(Path(os.path.join(manifest.simulation_output_filepath, site, "PfPR_monthly_U2.csv")))
+    sim_pfpr = sim_pfpr[sim_pfpr['agebin'] == agebin]
+    sim_pfpr['date'] = pd.to_datetime(sim_pfpr['month'].astype(str) + '-' + sim_pfpr['Year'].astype(str), format='%m-%Y')
+    sim_pfpr = sim_pfpr.sort_values(['Year', 'month'])
+
+    # Filter data for the year 2023
+    sim_pfpr_2023 = sim_pfpr[sim_pfpr['Year'] == 2023]
+    refpfpr_2023 = refpfpr[refpfpr['year'] == 2023]
+
+    # Get best parameter set
+    best = 3
+    if os.path.exists(os.path.join(wdir, "emod.best.csv")):
+        best_df = pd.read_csv(os.path.join(wdir, "emod.best.csv"))
+        best = best_df['param_set'].iloc[0]
+    
+    sim_pfpr_best_2023 = sim_pfpr_2023[sim_pfpr_2023['Sample_ID'] == best]
+
+    plt.figure(figsize=(10, 6), dpi=300, tight_layout=True)
+
+    # Plot all simulation lines for 2023
+    for sample_id in sim_pfpr_2023['Sample_ID'].unique():
+        sample_data = sim_pfpr_2023[sim_pfpr_2023['Sample_ID'] == sample_id]
+        plt.plot(sample_data['date'], sample_data['PfPR'], color='lightblue', alpha=0.5, linewidth=0.7)
+
+    # Highlight the best parameter set for 2023
+    plt.plot(sim_pfpr_best_2023['date'], sim_pfpr_best_2023['PfPR'], label="Best Parameter Set", color='blue', linewidth=2)
+
+    # Plot reference data for 2023
+    plt.scatter(refpfpr_2023['date'], refpfpr_2023['prevalence'], label="Reference Data", color='black', zorder=5)
+
+    # Format x-axis to show only "2023-07"
+    ax = plt.gca()
+    ax.set_xticks([pd.Timestamp("2023-07-01")])
+    ax.set_xticklabels(["2023-07"])
+    plt.xticks(rotation=45)
+
+    # Remove plot title
+    plt.xlabel("Date (One Year of Baseline Survey)")
     plt.ylabel("PfPR by Microscopy")
     plt.ylim(0, 1)
-    plt.gcf().autofmt_xdate()
-    plt.show()
-    plt.savefig(os.path.join(plt_dir,f"prevalence_{site}.png"))
-    plt.clf() 
+    plt.legend()
 
+    # Save and show the plot
+    os.makedirs(plt_dir, exist_ok=True)
+    plt.savefig(Path(os.path.join(plt_dir, f"prevalence_{site}_2023.png")))
+    plt.show()
+    plt.clf()
     
 def save_rangeEIR(site="", wdir="./"):
     # Get best parameter set
-    best = pd.read_csv(f"{wdir}/emod.best.csv")
+    best = pd.read_csv(Path(f"{wdir}/emod.best.csv"))
     best = best['param_set'][0]
     
     # Load simulation InsetChart for Daily EIR values
     # Note: Would be better to choose this version only if InsetChart is required for other comparisons
     #       Could use summary report channel instead
-    sim_df = pd.read_csv(os.path.join(manifest.simulation_output_filepath,site,"InsetChart_EIR.csv"))
+    sim_df = pd.read_csv(Path(os.path.join(manifest.simulation_output_filepath,site,"InsetChart_EIR.csv")))
     sim_df = sim_df.rename(columns={'Sample_ID':'param_set'})
     # Filter to best parameter set
     sim_df = sim_df[sim_df['param_set']==best]
@@ -193,8 +430,8 @@ def save_rangeEIR(site="", wdir="./"):
 
 def save_AnnualIncidence(site="", wdir="./",agebin=5):
     ### Load analyzed monthly MalariaSummaryReport from simulation
-    sim_cases = pd.read_csv(os.path.join(manifest.simulation_output_filepath,site,"ClinicalIncidence_monthly.csv"))
-    sim_cases = pd.read_csv(os.path.join(manifest.simulation_output_filepath,site,"ClinicalIncidence_monthly.csv"))
+    sim_cases = pd.read_csv(Path(os.path.join(manifest.simulation_output_filepath,site,"ClinicalIncidence_monthly.csv")))
+    sim_cases = pd.read_csv(Path(os.path.join(manifest.simulation_output_filepath,site,"ClinicalIncidence_monthly.csv")))
     # filter to age
     sim_cases = sim_cases[sim_cases['agebin']==agebin]
     sim_cases['Inc'] = sim_cases['Cases'] #/ sim_cases['Pop']
@@ -204,7 +441,7 @@ def save_AnnualIncidence(site="", wdir="./",agebin=5):
     sim_cases = sim_cases.groupby(['Sample_ID','agebin'])['Inc'].agg(np.nanmean).reset_index()
     sim_cases = sim_cases.rename(columns={'Sample_ID':'param_set'})
     
-    best = pd.read_csv(f"{wdir}/emod.best.csv")
+    best = pd.read_csv(Path(f"{wdir}/emod.best.csv"))
     best = best['param_set'][0]
     
     aci = sim_cases[sim_cases['param_set']==best]
@@ -215,11 +452,11 @@ def plot_allAge_prevalence(site="",plt_dir=os.path.join(manifest.simulation_outp
   
     coord_df=load_coordinator_df()
     start_year=int(coord_df.at['simulation_start_year','value'])
-    sim_df = pd.read_csv(os.path.join(manifest.simulation_output_filepath,site,"InsetChart_PCR.csv"))
+    sim_df = pd.read_csv(Path(os.path.join(manifest.simulation_output_filepath,site,"InsetChart_PCR.csv")))
     
     sim_df = sim_df.rename(columns={'Sample_ID':'param_set'})
   
-    best = pd.read_csv(f"{wdir}/emod.best.csv")
+    best = pd.read_csv(Path(f"{wdir}/emod.best.csv"))
     best = best['param_set'][0]
     sim_df = sim_df[sim_df['param_set']==best]
     sim_df['date'] = [timedelta(days=t) + datetime.strptime(f"{start_year}0101", '%Y%m%d') for t in sim_df['time']]
@@ -232,8 +469,8 @@ def plot_allAge_prevalence(site="",plt_dir=os.path.join(manifest.simulation_outp
     sim_df['year'] = sim_df['year'] + start_year 
     sim_df = sim_df[sim_df['month']<=12]
     
-    refpcr = pd.read_csv(os.path.join(manifest.base_reference_filepath,
-                                      coord_df.at['prevalence_comparison_reference','value']))
+    refpcr = pd.read_csv(Path(os.path.join(manifest.base_reference_filepath,
+                                      coord_df.at['prevalence_comparison_reference','value'])))
     refpcr['date']=np.nan
     # ref_date_format = '%m/%d/%Y'
     for index, row in refpcr.iterrows():
@@ -254,19 +491,41 @@ def plot_allAge_prevalence(site="",plt_dir=os.path.join(manifest.simulation_outp
     plt.ylim(0, 1)
     plt.gcf().autofmt_xdate()
     plt.show()
-    plt.savefig(os.path.join(plt_dir,f"prevalence_{site}.png"))
+    plt.savefig(Path(os.path.join(plt_dir,f"prevalence_{site}.png")))
     plt.clf()
 
 if __name__ == "__main__":
 
-    workdir="/projects/b1139/environment_calibration/simulations/output/test_pfpr/"
+    coord_df = pd.read_csv(manifest.simulation_coordinator_path)
+    # sites = ['Atakumosa West', 'Aiyedade', 'Ede South', 'Egbedore', 'Ife North', 'Iwo', 'Obokun', 'Irewole']
+    # site = coord_df.loc[coord_df['option'] == 'site', 'value']  # Select the site of interest
+    # site_dir_name = coord_df.loc[coord_df['option'] == 'exp_label', 'value']
+    site = coord_df.at['site', 'value']
+    # site_dir_name = coord_df.at['exp_label', 'value'] = str(exp_label)
+    # Convert site name to a valid directory name if needed (e.g., remove spaces)
+
+    site_dir_name = site.replace(" ", "_") + "_trial_30"
+
+    # Construct the workdir path dynamically
+    base_path = "/gpfs/projects/b1139/ipti_pmc/_mrm9534/environment_calibration/simulations/output/"
+    workdir =Path( f"{base_path}{site_dir_name}/")
+    
+    # # workdir="/projects/b1139/environment_calibration/simulations/output/Aiyedade_trial_1/"
+    # workdir="/home/upf3610/b1139/ipti_pmc/environment_calibration/simulations/output/Aiyedade_trial_29/"
+
     plt_dir=workdir
-    site="Nanoro"
+    # sites = ['Atakumosa West', 'Aiyedade', 'Ede South', 'Egbedore', 'Ife North', 'Iwo', 'Obokun', 'Irewole']
+    # site=sites[1]
     agebin=100
     coord_df = load_coordinator_df()
     start_year = coord_df.at['simulation_start_year','value']
-    
-    plot_pfpr_microscopy(site=site,plt_dir=plt_dir,wdir=workdir,agebin=100)
+
+    plot_pfpr_microscopy(site=site,plt_dir=plt_dir,wdir=workdir,agebin=5)
+    plot_pfpr_microscopy_u2(site=site,plt_dir=plt_dir,wdir=workdir,agebin=2)
+
+    # plot_incidence(site=site,plt_dir=plt_dir,wdir=workdir,agebin=100)
+
+    # plot_pfpr_microscopy(site=site,plt_dir=plt_dir,wdir=workdir,agebin=100)
     
     
     # Y0=compute_scores_across_site(site)
@@ -278,4 +537,3 @@ if __name__ == "__main__":
     # ACI.to_csv(f"{workdir}/LF_{n}/ACI.csv")
     # plot_incidence(site=site, plt_dir=os.path.join(f"{workdir}/LF_{n}"), wdir=os.path.join(f"{workdir}/LF_{n}"),agebin=100)
     # plot_allAge_prevalence(site=site, plt_dir=os.path.join(f"{workdir}/LF_{n}"), wdir=os.path.join(f"{workdir}/LF_{n}"))
-

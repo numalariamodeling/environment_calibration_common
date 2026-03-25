@@ -3,7 +3,6 @@
 import sys
 import os
 import argparse
-from pathlib import Path
 from idmtools.core.platform_factory import Platform
 # from within environment_calibration_common submodule
 sys.path.append("/home/upf3610/b1139/ipti_pmc/environment_calibration/environment_calibration_common")
@@ -49,7 +48,7 @@ def run_analyzers(site: str, expid: str = None, characteristic: bool = False) ->
         # site = expt_name.replace('validation_', '')
         # determine the analyzers to run for each site
         wdir=manifest.simulation_output_filepath
-        wdir=Path(os.path.join(wdir,site))
+        wdir=os.path.join(wdir,site)
 
         if not os.path.exists(wdir):
             os.makedirs(wdir)
